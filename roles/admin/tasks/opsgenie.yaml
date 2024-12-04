@@ -1,0 +1,68 @@
+---
+- name: Install required Python packages for OpsGenie
+  pip:
+    name: 
+      - opsgenie-sdk
+    state: present
+  become: true
+  when: opsgenie.heartbeats.enabled | default(false) | bool
+  tags: ['opsgenie']
+
+- name: Create OpsGenie heartbeat scripts directory
+  file:
+    path: /usr/local/bin/opsgenie
+    state: directory
+    mode: '0755'
+  become: true
+  when: opsgenie.heartbeats.enabled | default(false) | bool
+  tags: ['opsgenie']
+
+- name: Template OpsGenie heartbeat scripts
+  template:
+    src: opsgenie_heartbeat.py.j2
+    dest: "/usr/local/bin/opsgenie/{{ item.name }}_heartbeat.py"
+    mode: '0755'
+  loop: "{{ opsgenie.heartbeats.heartbeats }}"
+  when: 
+    - opsgenie.heartbeats.enabled | default(false) | bool
+    - item.enabled | default(true) | bool
+  become: true
+  tags: ['opsgenie']
+
+- name: Create systemd service for OpsGenie heartbeats
+  template:
+    src: opsgenie_heartbeat.service.j2
+    dest: "/etc/systemd/system/opsgenie-{{ item.name }}-heartbeat.service"
+    mode: '0644'
+  loop: "{{ opsgenie.heartbeats.heartbeats }}"
+  when: 
+    - opsgenie.heartbeats.enabled | default(false) | bool
+    - item.enabled | default(true) | bool
+  become: true
+  tags: ['opsgenie']
+
+- name: Create systemd timer for OpsGenie heartbeats
+  template:
+    src: opsgenie_heartbeat.timer.j2
+    dest: "/etc/systemd/system/opsgenie-{{ item.name }}-heartbeat.timer"
+    mode: '0644'
+  loop: "{{ opsgenie.heartbeats.heartbeats }}"
+  when: 
+    - opsgenie.heartbeats.enabled | default(false) | bool
+    - item.enabled | default(true) | bool
+  become: true
+  tags: ['opsgenie']
+
+- name: Enable and start OpsGenie heartbeat timers
+  systemd:
+    name: "opsgenie-{{ item.name }}-heartbeat.timer"
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  loop: "{{ opsgenie.heartbeats.heartbeats }}"
+  when: 
+    - opsgenie.heartbeats.enabled | default(false) | bool
+    - item.enabled | default(true) | bool
+    - not ansible_connection == 'docker'
+  become: true
+  tags: ['opsgenie']

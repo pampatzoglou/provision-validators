@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+import sys
+import opsgenie_sdk
+import logging
+from typing import Dict, Any
+
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('opsgenie_heartbeat')
+
+def send_heartbeat(config: Dict[str, Any]) -> bool:
+    """
+    Send a heartbeat to OpsGenie
+    
+    :param config: Configuration dictionary for the heartbeat
+    :return: Boolean indicating success of heartbeat
+    """
+    try:
+        # Configure OpsGenie client
+        client = opsgenie_sdk.HeartbeatClient(api_key="{{ opsgenie.heartbeats.api_key }}")
+        
+        # Send heartbeat
+        response = client.send_heartbeat(
+            name=config['name']
+        )
+        
+        logger.info(f"Heartbeat sent for {config['name']}: {response}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send heartbeat for {config['name']}: {e}")
+        return False
+
+def main():
+    # Heartbeat configuration
+    heartbeat_config = {
+        'name': '{{ item.name }}',
+    }
+    
+    # Send heartbeat
+    success = send_heartbeat(heartbeat_config)
+    
+    # Exit with appropriate status
+    sys.exit(0 if success else 1)
+
+if __name__ == '__main__':
+    main()

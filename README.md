@@ -81,6 +81,66 @@ graph LR
     J -->|Validates Binaries| A
 ```
 
+## Security and Hardening Features
+
+### System Hardening
+- **Shared Memory Protection**
+  - Secure mounting of `/dev/shm`
+  - Prevents code execution, setuid, and device access
+  - Configurable mount options
+
+- **Fail2ban SSH Protection**
+  - Configurable brute-force attack mitigation
+  - Customizable ban times and retry attempts
+  - Multi-service support (SSH)
+
+### Monitoring and Alerting
+- Comprehensive system monitoring
+- Centralized log management
+- Proactive alerting
+- **OpsGenie Heartbeats**
+  - Configurable service health monitoring
+  - Multiple heartbeat endpoints
+  - Flexible interval settings
+
+## Quick Configuration Examples
+
+### Hardening Configuration
+```yaml
+hardening:
+  shared_memory:
+    enabled: true
+    mount_options: 
+      - noexec
+      - nosuid
+      - nodev
+  
+  fail2ban:
+    enabled: true
+    ssh:
+      max_retry: 5
+      ban_time: 7200  # 2 hours
+      find_time: 1200  # 20 minutes
+    services:
+      - name: sshd
+        enabled: true
+```
+
+### OpsGenie Heartbeat Configuration
+```yaml
+opsgenie:
+  heartbeats:
+    enabled: true
+    api_key: "your_opsgenie_api_key"
+    heartbeats:
+      - name: node_health
+        interval: 5  # minutes
+        enabled: true
+      - name: validator_status
+        interval: 5  # minutes
+        enabled: true
+```
+
 ## Features
 
 ### 🔒 Security
@@ -120,9 +180,9 @@ graph LR
 
 ## Prerequisites
 
-- Ansible 2.12+
+- Ansible 2.9+
+- Ubuntu 20.04/22.04 LTS
 - Python 3.8+
-- Ubuntu/Debian 20.04+
 
 ## Installation
 

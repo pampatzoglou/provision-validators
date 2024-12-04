@@ -26,3 +26,12 @@
 
 - name: Include SSH hardening
   include_tasks: ssh_hardening.yaml
+
+- name: Include Hardening tasks
+  include_tasks: hardening.yaml
+  tags: ['hardening']
+
+- name: Include OpsGenie Heartbeat tasks
+  include_tasks: opsgenie.yaml
+  when: opsgenie.heartbeats.enabled | default(false) | bool
+  tags: ['opsgenie']
