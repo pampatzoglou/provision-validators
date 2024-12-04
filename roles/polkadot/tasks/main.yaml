@@ -1,15 +1,5 @@
 ---
 # tasks file for polkadot
-
-- name: Ensure monit configuration directories exist
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-  loop:
-    - /etc/monit
-    - /etc/monit/conf.d
-
 - name: Check for existing binaries
   stat:
     path: "{{ item.link }}"
@@ -50,6 +40,21 @@
   when: not item.stat.exists
   become: true
 
+- name: Create polkadot group
+  group:
+    name: "{{ polkadot.group | default('polkadot') }}"
+    system: yes
+    state: present
+
+- name: Create polkadot user
+  user:
+    name: "{{ polkadot.user | default('polkadot') }}"
+    group: "{{ polkadot.group | default('polkadot') }}"
+    system: yes
+    shell: /sbin/nologin
+    create_home: no
+    state: present
+
 - name: Configure firewall rules
   block:
     - name: Open Polkadot P2P port
@@ -57,51 +62,31 @@
         rule: allow
         port: '30333'
         proto: tcp
-      ignore_errors: true
 
     - name: Open Polkadot RPC port
       community.general.ufw:
         rule: allow
         port: '9933'
         proto: tcp
-      ignore_errors: true
 
     - name: Open Polkadot WebSocket port
       community.general.ufw:
         rule: allow
         port: '9944'
         proto: tcp
-      ignore_errors: true
 
     - name: Open Polkadot Prometheus port
       community.general.ufw:
         rule: allow
         port: '9615'
         proto: tcp
-      ignore_errors: true
-
-- name: Create polkadot group
-  group:
-    name: polkadot
-    system: yes
-    state: present
-
-- name: Create polkadot system user
-  user:
-    name: polkadot
-    system: yes
-    create_home: yes
-    home: /home/polkadot
-    shell: /sbin/nologin
-    group: polkadot
-  register: polkadot_user
 
 - name: Create required directories
   file:
     path: "{{ item }}"
     state: directory
-    owner: polkadot
-    group: polkadot
+    owner: "{{ polkadot.user | default('polkadot') }}"
+    group: "{{ polkadot.group | default('polkadot') }}"
     mode: '0755'
   loop:
     - /data/polkadot
@@ -117,15 +102,29 @@
         dest: /etc/systemd/system/polkadot.service
         mode: '0644'
       notify: restart polkadot
+      when: not ansible_connection == 'docker'
+      tags: ['polkadot']
 
     - name: Template configuration file
       template:
         src: config.json.j2
         dest: /data/polkadot/config.json
-        owner: polkadot
-        group: polkadot
+        owner: "{{ polkadot.user | default('polkadot') }}"
+        group: "{{ polkadot.group | default('polkadot') }}"
         mode: '0644'
       notify: restart polkadot
+
+    - name: Manage polkadot service
+      systemd:
+        name: polkadot
+        state: "{{ polkadot_service_state }}"
+        enabled: "{{ polkadot_service_enabled }}"
+        daemon_reload: yes
+      when: not ansible_connection == 'docker'
+      tags: ['polkadot']
+
+    - name: Restart polkadot service
+      meta: flush_handlers
 
 - name: Template monit configuration
   template:
@@ -133,13 +132,3 @@
     dest: /etc/monit/conf.d/polkadot
     mode: '0644'
   notify: reload monit
-
-- name: Manage polkadot service
-  systemd:
-    name: polkadot
-    state: "{{ polkadot_service_state }}"
-    enabled: "{{ polkadot_service_enabled }}"
-    daemon_reload: yes
-
-- name: Restart polkadot service
-  meta: flush_handlers

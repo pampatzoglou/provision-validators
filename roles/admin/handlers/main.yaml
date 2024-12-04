@@ -1,0 +1,56 @@
+---
+# handlers file for admin
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  when: not ansible_connection == 'docker'
+
+- name: restart grafana-agent
+  systemd:
+    name: grafana-agent
+    state: restarted
+    daemon_reload: yes
+  when: grafana_agent.enabled | bool and not ansible_connection == 'docker'
+
+- name: restart node-exporter
+  systemd:
+    name: node-exporter
+    state: restarted
+    daemon_reload: yes
+  when: node_exporter.enabled | bool and not ansible_connection == 'docker'
+
+- name: restart promtail
+  systemd:
+    name: promtail
+    state: restarted
+    daemon_reload: yes
+  when: promtail.enabled | bool and not ansible_connection == 'docker'
+
+- name: reload monit
+  systemd:
+    name: monit
+    state: reloaded
+    daemon_reload: yes
+  when: monit.enabled | bool and not ansible_connection == 'docker'
+
+- name: restart monit
+  systemd:
+    name: monit
+    state: restarted
+    daemon_reload: yes
+  when: monit.enabled | bool and not ansible_connection == 'docker'
+
+- name: restart teleport
+  systemd:
+    name: teleport
+    state: restarted
+    daemon_reload: yes
+  when: not ansible_connection == 'docker'
+
+- name: restart sshd
+  systemd:
+    name: sshd
+    state: restarted
+    daemon_reload: yes
+  when: not ansible_connection == 'docker'

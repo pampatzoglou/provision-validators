@@ -1,38 +1,165 @@
-Role Name
-=========
+# Admin Role
 
-A brief description of the role goes here.
+This role manages system administration tasks, monitoring, and secure access for validator nodes.
 
-Requirements
-------------
+## Features
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- UFW firewall configuration
+- Monit system monitoring
+- Grafana Agent for metrics collection
+- Promtail for log aggregation
+- Node Exporter for system metrics
+- Teleport for secure SSH access
+- Binary signature verification
 
-Role Variables
---------------
+## Requirements
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+- Ansible 2.9+
+- Ubuntu 20.04+ / Debian 11+
+- Python 3.8+
 
-Dependencies
-------------
+## Role Variables
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+### UFW Configuration
+```yaml
+ufw:
+  enabled: true
+  default_incoming_policy: "deny"
+  default_outgoing_policy: "allow"
+  rules:
+    - { port: 22, proto: "tcp", rule: "allow" }
+    - { port: 3022, proto: "tcp", rule: "allow" }
+```
 
-Example Playbook
-----------------
+### Monit Configuration
+```yaml
+monit:
+  enabled: true
+  config_dir: "/etc/monit"
+  config_file: "/etc/monit/monitrc"
+  include_dir: "/etc/monit/conf.d"
+  check_interval: 30
+  start_delay: 120
+```
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+### Promtail Configuration
+```yaml
+promtail:
+  version: "2.9.2"
+  enabled: true
+  install_dir: "/usr/local/bin"
+  config_dir: "/etc/promtail"
+  positions_dir: "/var/lib/promtail"
+  loki_url: "http://loki:3100/loki/api/v1/push"
+```
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+### Grafana Agent Configuration
+```yaml
+grafana_agent:
+  version: "0.39.1"
+  enabled: true
+  remote_write:
+    - url: "http://prometheus:9090/api/v1/write"
+```
 
-License
--------
+### Node Exporter Configuration
+```yaml
+node_exporter:
+  version: "1.7.0"
+  enabled: true
+  port: 9100
+```
 
-BSD
+### Teleport Configuration
+```yaml
+teleport:
+  enabled: true
+  version: "13.3.2"
+  auth_token: ""  # Required
+  auth_server: "" # Required
+```
 
-Author Information
-------------------
+## Dependencies
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Required Ansible collections:
+- community.general
+- ansible.posix
+
+## Example Playbook
+
+```yaml
+- hosts: validators
+  roles:
+    - role: admin
+      vars:
+        teleport:
+          auth_token: "your-auth-token"
+          auth_server: "auth.example.com:3025"
+        monit:
+          checks:
+            system:
+              enabled: true
+        promtail:
+          enabled: true
+          loki_url: "http://loki.example.com:3100"
+```
+
+## Security Features
+
+- Binary signature verification for all downloaded binaries
+- UFW firewall with restrictive default policies
+- Secure service configurations with minimal privileges
+- Dedicated system users for each service
+- Systemd service hardening
+
+## Monitoring Stack
+
+### Monit
+- System resource monitoring
+- Process monitoring
+- Custom service checks
+
+### Grafana Agent
+- Metrics collection
+- Remote write to Prometheus
+- Service discovery
+
+### Promtail
+- Log aggregation
+- Label management
+- Loki integration
+
+### Node Exporter
+- System metrics collection
+- Hardware monitoring
+- Resource utilization tracking
+
+## Testing
+
+This role includes Molecule tests for verifying functionality:
+
+```bash
+# Install test dependencies
+pip install molecule molecule-docker ansible-lint
+
+# Run tests
+cd roles/admin
+molecule test
+```
+
+The tests verify:
+- Package installation
+- Service configuration
+- Port availability
+- Binary installation
+- Configuration files
+- System users
+- UFW rules
+
+## License
+
+MIT
+
+## Author Information
+
+Created by [Your Name]

@@ -1,0 +1,135 @@
+---
+# defaults file for admin
+# Grafana Agent Configuration
+grafana_agent:
+  version: "0.43.4"
+  install_dir: "/usr/local/bin"
+  config_dir: "/etc/grafana-agent"
+  data_dir: "/var/lib/grafana-agent"
+  user: "grafana-agent"
+  group: "grafana-agent"
+  enabled: true
+  remote_write:
+    - url: "http://prometheus:9090/api/v1/write"
+      basic_auth:
+        username: ""
+        password: ""
+  scrape_configs:
+    - job_name: "polkadot"
+      static_configs:
+        - targets: ["localhost:9615"]
+      metrics_path: "/metrics"
+      scrape_interval: "15s"
+    - job_name: "node"
+      static_configs:
+        - targets: ["localhost:9100"]
+      metrics_path: "/metrics"
+      scrape_interval: "15s"
+
+# Node Exporter Configuration
+node_exporter:
+  version: "1.8.2"
+  enabled: false  # Optional installation
+  user: "node-exporter"
+  group: "node-exporter"
+  install_dir: "/usr/local/bin"
+  port: 9100
+  options:
+    - "--collector.systemd"
+    - "--collector.processes"
+    - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run)($|/)"
+
+# Promtail Configuration
+promtail:
+  version: "3.2.1"
+  user: "promtail"
+  group: "promtail"
+  install_dir: "/usr/local/bin"
+  config_dir: "/etc/promtail"
+  data_dir: "/var/lib/promtail"
+  positions_dir: "/var/lib/promtail/positions"
+  enabled: true
+  loki_url: "http://loki:3100/loki/api/v1/push"
+  scrape_configs:
+    - job_name: polkadot
+      static_configs:
+        - targets:
+            - localhost
+          labels:
+            job: polkadot
+            host: "{{ inventory_hostname }}"
+            __path__: /var/log/polkadot/*.log
+    - job_name: system
+      static_configs:
+        - targets:
+            - localhost
+          labels:
+            job: system
+            host: "{{ inventory_hostname }}"
+            __path__: 
+              - /var/log/syslog
+              - /var/log/auth.log
+
+# Monit Configuration
+monit:
+  enabled: false
+  config_dir: /etc/monit
+  config_file: monitrc
+  include_dir: /etc/monit/conf.d
+  check_interval: 30
+  log_file: /var/log/monit.log
+  mail_enabled: false
+  mail_from: monit@localhost
+  mail_to: root@localhost
+  mail_subject: Monit Alert
+  mail_server: localhost
+  mail_port: 25
+  mail_username: ""
+  mail_password: ""
+  mail_encryption: ""
+  mail_timeout: 30
+
+# Teleport Configuration
+teleport:
+  enabled: true
+  version: "13.3.2"
+  user: "teleport"
+  group: "teleport"
+  install_dir: "/usr/local/bin"
+  config_dir: "/etc/teleport"
+  data_dir: "/var/lib/teleport"
+  auth_token: ""  # Required for joining existing cluster
+  auth_server: ""  # Required - Auth server address
+  node_name: "{{ inventory_hostname }}"
+  labels:
+    role: "validator"
+    environment: "production"
+  auth:
+    enabled: false  # Set to true if this is an auth server
+  proxy:
+    enabled: false  # Set to true if this is a proxy server
+  ssh_service:
+    enabled: true
+    listen_addr: "0.0.0.0:3022"
+  app_service:
+    enabled: false
+  kubernetes_service:
+    enabled: false
+
+# UFW Configuration
+ufw:
+  enabled: true
+  default_incoming_policy: "deny"
+  default_outgoing_policy: "allow"
+  rules:
+    - { port: 22, proto: "tcp", rule: "allow" }  # SSH
+    - { port: 3022, proto: "tcp", rule: "allow" } # Teleport SSH
+    - { port: 9100, proto: "tcp", rule: "allow" }  # Node Exporter
+    - { port: 9080, proto: "tcp", rule: "allow" }  # Promtail
+    - { port: 2812, proto: "tcp", rule: "allow" }  # Monit
+
+# Binary Signatures
+signatures:
+  teleport:
+    key_url: "https://deb.releases.teleport.dev/teleport-pubkey.asc"
+    key_id: "14F9 5DA9 DE82 1DFF F4B8 0B61 D0E8 5A5E 8ED5 CDAA"

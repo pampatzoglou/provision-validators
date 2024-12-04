@@ -1,0 +1,45 @@
+[Unit]
+Description=Node Exporter
+Documentation=https://github.com/prometheus/node_exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=node_exporter
+Group=node_exporter
+ExecStart={{ node_exporter.install_dir | default('/usr/local/bin') }}/node_exporter \
+    --web.listen-address=:{{ node_exporter.port | default(9100) }} \
+{% if node_exporter.options is defined %}
+{% for option in node_exporter.options %}
+    {{ option }} {% if not loop.last %}\{% endif %}
+{% endfor %}
+{% endif %}
+
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+MemoryDenyWriteExecute=yes
+
+# Read-only access to system
+ReadWritePaths=/var/lib/node_exporter
+ReadOnlyPaths=/proc
+ReadOnlyPaths=/sys
+
+[Install]
+WantedBy=multi-user.target

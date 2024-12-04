@@ -1,0 +1,80 @@
+---
+- name: Create Teleport group
+  group:
+    name: "{{ teleport.group | default('teleport') }}"
+    system: yes
+    state: present
+
+- name: Create Teleport user
+  user:
+    name: "{{ teleport.user | default('teleport') }}"
+    group: "{{ teleport.group | default('teleport') }}"
+    system: yes
+    shell: /sbin/nologin
+    create_home: no
+    state: present
+
+- name: Create Teleport directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ teleport.user | default('teleport') }}"
+    group: "{{ teleport.group | default('teleport') }}"
+    mode: '0750'
+  loop:
+    - "{{ teleport.config_dir }}"
+    - "{{ teleport.data_dir }}"
+
+- name: Download Teleport binary
+  get_url:
+    url: "https://get.gravitational.com/teleport-v{{ teleport.version }}-linux-amd64-bin.tar.gz"
+    dest: "/tmp/teleport.tar.gz"
+    mode: '0644'
+
+- name: Extract Teleport binary
+  unarchive:
+    src: "/tmp/teleport.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Install Teleport binaries
+  copy:
+    src: "/tmp/teleport/{{ item }}"
+    dest: "{{ teleport.install_dir }}/{{ item }}"
+    mode: '0755'
+    remote_src: yes
+  loop:
+    - tctl
+    - tsh
+    - teleport
+
+- name: Template Teleport configuration
+  template:
+    src: teleport.yaml.j2
+    dest: "{{ teleport.config_dir }}/teleport.yaml"
+    owner: "{{ teleport.user | default('teleport') }}"
+    group: "{{ teleport.group | default('teleport') }}"
+    mode: '0640'
+  notify: restart teleport
+
+- name: Template Teleport systemd service
+  template:
+    src: teleport.service.j2
+    dest: /etc/systemd/system/teleport.service
+    mode: '0644'
+  notify: restart teleport
+
+- name: Enable and start Teleport service
+  systemd:
+    name: teleport
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Clean up temporary files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/teleport.tar.gz"
+    - "/tmp/teleport"

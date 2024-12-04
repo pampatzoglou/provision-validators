@@ -1,0 +1,37 @@
+---
+- name: Create monit configuration directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ monit.config_dir | default('/etc/monit') }}"
+    - "{{ monit.include_dir | default('/etc/monit/conf.d') }}"
+  become: true
+  tags: ['monit']
+
+- name: Install monit package
+  apt:
+    name: monit
+    state: present
+  become: true
+  tags: ['monit']
+
+- name: Template monit main configuration
+  template:
+    src: monit.conf.j2
+    dest: "{{ monit.config_dir | default('/etc/monit') }}/{{ monit.config_file | default('monitrc') }}"
+    mode: '0600'
+  become: true
+  notify: restart monit
+  tags: ['monit']
+
+- name: Enable and start monit service
+  systemd:
+    name: monit
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: true
+  when: not ansible_connection == 'docker'
+  tags: ['monit']

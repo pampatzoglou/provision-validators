@@ -1,110 +1,154 @@
+# Polkadot Validator Role
 
-```
-# Polkadot Role
+This role installs and configures a Polkadot validator node with security best practices and monitoring integration.
 
-This Ansible role downloads and installs Polkadot binaries from the official Polkadot-SDK releases. It handles downloading the binaries, verifying their SHA256 checksums and GPG signatures, and installing them in versioned directories with symlinks for easy rollback.
+## Features
 
-## Architecture
-
-```mermaid
-graph TD
-    A[Check Existing Binaries] -->|Not Found| B[Download Binaries]
-    A -->|Found| C[Check Signatures]
-    C -->|Invalid| B
-    C -->|Valid| D[Skip Download]
-    B --> E[Download Signatures]
-    E --> F[Verify Signatures]
-    F -->|Valid| G[Install Binaries]
-    F -->|Invalid| H[Fail]
-```
+- Secure systemd service configuration
+- Binary management with signature verification
+- UFW firewall configuration
+- Monit service monitoring
+- Dedicated system user and group
+- Directory structure management
+- Prometheus metrics exposure
 
 ## Requirements
 
-- Ansible 2.9 or higher
-- Access to the internet to download binaries
-- `gnupg` package (will be installed by the role)
-- `sha256sum` command (usually pre-installed on Linux systems)
+- Ansible 2.9+
+- Ubuntu 20.04+ / Debian 11+
+- Python 3.8+
+- Minimum 16GB RAM
+- Minimum 500GB SSD storage
 
 ## Role Variables
 
-The following variables are available for customization (defaults shown):
-
+### Binary Configuration
 ```yaml
-# Polkadot version (using the stable release format)
-polkadot_version: "stable2409-2"
-
-# Base URL for downloads
-polkadot_base_url: "https://github.com/paritytech/polkadot-sdk/releases/download"
-
-# Binary installation directory
-binary_base_dir: "/usr/local/bin"
-
-# Keep previous versions
-keep_previous_versions: 2
-
-# Cleanup old versions
-cleanup_old_versions: true
-
-# Wait time before cleanup (seconds)
-cleanup_wait_time: 300
+polkadot_version: "1.3.0"
+polkadot_binary_url: "https://github.com/paritytech/polkadot/releases/download/v{{ polkadot_version }}/polkadot"
+polkadot_binary_signature_url: "{{ polkadot_binary_url }}.asc"
+polkadot_binary_path: "/usr/local/bin/polkadot"
 ```
 
-## Binary Management Process
+### Service Configuration
+```yaml
+polkadot_service_enabled: true
+polkadot_service_state: "started"
+polkadot_user: "polkadot"
+polkadot_group: "polkadot"
+```
 
-1. **Version Check**
+### Directory Configuration
+```yaml
+polkadot_dirs:
+  - "/data/polkadot"
+  - "/var/run/polkadot"
+  - "/var/log/polkadot"
+  - "/home/polkadot/.local/share/polkadot"
+```
 
-   - The role first checks if the requested version is already installed
-   - Verifies the existence of binary files and their signatures
-2. **Signature Verification**
+### Node Configuration
+```yaml
+polkadot_node_name: "validator-1"
+polkadot_chain: "polkadot"
+polkadot_validator_mode: true
+polkadot_telemetry_enabled: false
+```
 
-   - For existing binaries, GPG signatures are verified
-   - If verification fails, binaries are re-downloaded
-3. **Download Process**
+## Dependencies
 
-   - Downloads only occur for missing or invalid binaries
-   - Downloads include:
-     * Binary files
-     * SHA256 checksums
-     * GPG signatures
-4. **Installation**
+Required Ansible collections:
+- community.general
+- ansible.posix
 
-   - Binaries are installed in versioned directories
-   - Symlinks are created for easy access
-   - Old versions are managed based on configuration
-
-## Usage
-
-Include this role in your playbook:
+## Example Playbook
 
 ```yaml
 - hosts: validators
   roles:
-    - role: binaries
+    - role: polkadot
       vars:
-        polkadot_version: "stable2409-2"
+        polkadot_node_name: "validator-1"
+        polkadot_validator_mode: true
+        polkadot_telemetry_enabled: false
 ```
 
-## Version Management
+## Security Features
 
-The role supports keeping multiple versions installed:
+- Dedicated system user with minimal privileges
+- Systemd service hardening:
+  * PrivateTmp=true
+  * NoNewPrivileges=true
+  * ProtectSystem=strict
+  * ProtectHome=true
+  * ReadWritePaths restrictions
+- UFW firewall with restrictive rules
+- Binary signature verification
 
-```mermaid
-graph LR
-    A[/usr/local/bin] --> B[stable2409-2]
-    A --> C[stable2409-1]
-    B --> D[polkadot]
-    B --> E[polkadot-prepare-worker]
-    C --> F[polkadot]
-    C --> G[polkadot-prepare-worker]
-```
-
-## Security
-
-- All binaries are verified using both SHA256 checksums and GPG signatures
-- Downloads are performed over HTTPS
-- Binary versions are isolated in separate directories
-- Rollback capability through version management
+## Directory Structure
 
 ```
+/data/polkadot/
+├── config.json         # Node configuration
+└── chain-data/         # Blockchain data
 
+/var/run/polkadot/
+└── polkadot.pid       # Process ID file
+
+/var/log/polkadot/
+└── polkadot.log       # Service logs
+
+/home/polkadot/.local/share/polkadot/
+├── chains/            # Chain-specific data
+└── keystore/          # Node keys
 ```
+
+## Service Management
+
+The role configures a systemd service with:
+- Automatic restart on failure
+- Resource limits
+- Security restrictions
+- Proper logging
+
+## Monitoring Integration
+
+### Prometheus Metrics
+- Exposed on port 9615
+- Node-specific metrics
+- Validator performance metrics
+- System resource usage
+
+### Monit Checks
+- Process monitoring
+- Resource usage alerts
+- Custom validator checks
+
+## Testing
+
+This role includes Molecule tests:
+
+```bash
+# Install test dependencies
+pip install molecule molecule-docker ansible-lint
+
+# Run tests
+cd roles/polkadot
+molecule test
+```
+
+The tests verify:
+- Binary installation
+- Service configuration
+- Directory permissions
+- Port availability
+- User/group creation
+- Monitoring integration
+
+## License
+
+MIT
+
+## Author Information
+
+Created by [Your Name]

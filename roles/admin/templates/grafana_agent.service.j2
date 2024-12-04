@@ -1,0 +1,40 @@
+[Unit]
+Description=Grafana Agent
+Documentation=https://grafana.com/docs/agent/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ grafana_agent.user | default('grafana-agent') }}
+Group={{ grafana_agent.group | default('grafana-agent') }}
+ExecStart={{ grafana_agent.install_dir | default('/usr/local/bin') }}/grafana-agent \
+    --config.file={{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml
+
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+MemoryDenyWriteExecute=yes
+
+# Read-only access to system
+ReadWritePaths={{ grafana_agent.data_dir | default('/var/lib/grafana-agent') }}
+ReadOnlyPaths=/proc
+ReadOnlyPaths=/sys
+
+[Install]
+WantedBy=multi-user.target

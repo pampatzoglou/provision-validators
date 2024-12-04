@@ -1,0 +1,28 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: {{ promtail.positions_dir }}/positions.yaml
+
+clients:
+  - url: {{ promtail.loki_url }}
+{% if promtail.basic_auth is defined %}
+    basic_auth:
+      username: {{ promtail.basic_auth.username }}
+      password: {{ promtail.basic_auth.password }}
+{% endif %}
+
+scrape_configs:
+{% if promtail.scrape_configs is defined %}
+{{ promtail.scrape_configs | to_nice_yaml(indent=2) | indent(2, first=True) }}
+{% else %}
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          host: {{ inventory_hostname }}
+          __path__: /var/log/*log
+{% endif %}

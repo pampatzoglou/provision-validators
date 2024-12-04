@@ -1,0 +1,101 @@
+---
+- name: Create promtail group
+  group:
+    name: "{{ promtail.group }}"
+    system: yes
+    state: present
+
+- name: Create promtail user
+  user:
+    name: "{{ promtail.user }}"
+    group: "{{ promtail.group }}"
+    system: yes
+    shell: /sbin/nologin
+    create_home: no
+    state: present
+
+- name: Create promtail directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ promtail.user }}"
+    group: "{{ promtail.group }}"
+    mode: '0750'
+  loop:
+    - "{{ promtail.config_dir }}"
+    - "{{ promtail.positions_dir }}"
+
+- name: Download promtail binary
+  get_url:
+    url: "https://github.com/grafana/loki/releases/download/v{{ promtail.version }}/promtail-linux-amd64.zip"
+    dest: "/tmp/promtail-linux-amd64.zip"
+    mode: '0644'
+  register: promtail_download
+
+- name: Download SHA256SUMS
+  get_url:
+    url: "https://github.com/grafana/loki/releases/download/v{{ promtail.version }}/SHA256SUMS"
+    dest: "/tmp/promtail-SHA256SUMS"
+    mode: '0644'
+
+- name: Extract checksum for promtail binary
+  shell: |
+    grep "promtail-linux-amd64.zip" /tmp/promtail-SHA256SUMS > /tmp/promtail-checksum
+  changed_when: false
+
+- name: Verify promtail binary checksum
+  shell: |
+    cd /tmp && sha256sum -c promtail-checksum
+  register: checksum_verify
+  failed_when: checksum_verify.rc != 0
+  changed_when: false
+
+- name: Extract promtail binary
+  unarchive:
+    src: "/tmp/promtail-linux-amd64.zip"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Install promtail binary
+  copy:
+    src: "/tmp/promtail-linux-amd64"
+    dest: "{{ promtail.install_dir }}/promtail"
+    mode: '0755'
+    remote_src: yes
+    owner: "{{ promtail.user }}"
+    group: "{{ promtail.group }}"
+
+- name: Template promtail configuration
+  template:
+    src: promtail.yaml.j2
+    dest: "{{ promtail.config_dir }}/config.yaml"
+    owner: "{{ promtail.user }}"
+    group: "{{ promtail.group }}"
+    mode: '0640'
+  notify: restart promtail
+
+- name: Template promtail systemd service
+  template:
+    src: promtail.service.j2
+    dest: /etc/systemd/system/promtail.service
+    mode: '0644'
+  notify: restart promtail
+  when: not ansible_connection == 'docker'
+
+- name: Enable and start promtail service
+  systemd:
+    name: promtail
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  when: not ansible_connection == 'docker'
+
+- name: Clean up temporary files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/promtail-linux-amd64.zip"
+    - "/tmp/promtail-linux-amd64"
+    - "/tmp/promtail-SHA256SUMS"
+    - "/tmp/promtail-checksum"

@@ -1,0 +1,46 @@
+teleport:
+  nodename: {{ teleport.node_name }}
+  data_dir: {{ teleport.data_dir }}
+  auth_token: {{ teleport.auth_token }}
+  auth_servers:
+    - {{ teleport.auth_server }}
+  log:
+    output: stderr
+    severity: INFO
+    format:
+      output: text
+  ca_pin: []
+  diag_addr: ""
+
+auth_service:
+  enabled: {{ teleport.auth.enabled | lower }}
+  listen_addr: 0.0.0.0:3025
+  tokens: []
+  
+ssh_service:
+  enabled: {{ teleport.ssh_service.enabled | lower }}
+  listen_addr: {{ teleport.ssh_service.listen_addr }}
+  commands:
+    - name: hostname
+      command: [hostname]
+      period: 1m0s
+    - name: uptime
+      command: [uptime, -p]
+      period: 1m0s
+
+proxy_service:
+  enabled: {{ teleport.proxy.enabled | lower }}
+  web_listen_addr: 0.0.0.0:3080
+  tunnel_listen_addr: 0.0.0.0:3024
+  public_addr: {{ teleport.auth_server }}:3080
+
+app_service:
+  enabled: {{ teleport.app_service.enabled | lower }}
+
+kubernetes_service:
+  enabled: {{ teleport.kubernetes_service.enabled | lower }}
+
+labels:
+{% for key, value in teleport.labels.items() %}
+  {{ key }}: {{ value }}
+{% endfor %}

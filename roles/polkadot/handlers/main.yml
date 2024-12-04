@@ -1,8 +1,0 @@
----
-# handlers file for polkadot
-
-- name: restart polkadot
-  systemd:
-    name: polkadot
-    state: restarted
-    daemon_reload: yes

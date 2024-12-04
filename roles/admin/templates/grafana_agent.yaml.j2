@@ -1,0 +1,40 @@
+server:
+  log_level: info
+
+metrics:
+  global:
+    scrape_interval: 15s
+    remote_write:
+{% for remote in grafana_agent.remote_write | default([]) %}
+      - url: {{ remote.url }}
+{% if remote.basic_auth is defined %}
+        basic_auth:
+          username: {{ remote.basic_auth.username }}
+          password: {{ remote.basic_auth.password }}
+{% endif %}
+{% endfor %}
+
+  configs:
+{% if grafana_agent.scrape_configs is defined %}
+    - name: default
+      scrape_configs:
+{{ grafana_agent.scrape_configs | to_nice_yaml(indent=2) | indent(8, first=true) }}
+{% endif %}
+
+logs:
+  positions_directory: {{ grafana_agent.data_dir | default('/var/lib/grafana-agent') }}/positions
+  configs:
+  - name: default
+    clients:
+{% if grafana_agent.loki_url is defined %}
+      - url: {{ grafana_agent.loki_url }}
+{% endif %}
+    scrape_configs:
+{% if grafana_agent.log_scrape_configs is defined %}
+{{ grafana_agent.log_scrape_configs | to_nice_yaml(indent=2) | indent(4, first=true) }}
+{% endif %}
+
+integrations:
+  node_exporter:
+    enabled: true
+    include_exporter_metrics: true
