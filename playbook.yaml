@@ -13,5 +13,7 @@
     when: ansible_os_family == "Debian"
 
   roles:
+    - role: admin
+      tags: ['admin', 'security', 'monitoring']
     - role: polkadot
       tags: ['polkadot']
