@@ -277,7 +277,7 @@ The tests verify:
 
 ## License
 
-MIT
+Apache-2.0
 
 ## Author Information
 

@@ -224,7 +224,7 @@ Uses Molecule for automated testing:
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) file for details.
+Apache-2.0 License - See [LICENSE](LICENSE) file for details.
 
 ## Documentation
 
