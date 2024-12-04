@@ -1,0 +1,109 @@
+---
+# defaults file for polkadot
+# Polkadot version (using the stable release format)
+polkadot_version: "stable2409-2"
+
+# Base URL for downloads
+polkadot_base_url: "https://github.com/paritytech/polkadot-sdk/releases/download"
+
+# Base directory for versioned binaries
+binary_base_dir: "/usr/local/lib/polkadot"
+
+# Binary names and paths
+polkadot_binaries:
+  - name: "polkadot"
+    link: "/usr/local/bin/polkadot"
+  - name: "polkadot-execute-worker"
+    link: "/usr/local/bin/polkadot-execute-worker"
+  - name: "polkadot-prepare-worker"
+    link: "/usr/local/bin/polkadot-prepare-worker"
+
+# Directory for temporary downloads
+download_temp_dir: "/tmp/polkadot_binaries"
+
+# Number of previous versions to keep (0 means keep all)
+keep_previous_versions: 2
+
+# Whether to clean up all old versions after successful installation
+cleanup_old_versions: false
+
+# Time to wait for service checks before cleanup (in seconds)
+cleanup_wait_time: 300
+
+# Binary verification settings
+verify_binary_hash: true
+binary_hash_cache_dir: "/var/cache/polkadot/hashes"
+
+# Health check configuration
+health_check:
+  enabled: true
+  max_retries: 3
+  retry_interval: 60
+  checks:
+    - type: "process"
+      pattern: "polkadot.*--validator"
+    - type: "rpc"
+      endpoint: "http://localhost:9933"
+      method: "system_health"
+      timeout: 10
+
+# Backup configuration
+backup:
+  enabled: true
+  directory: "/var/backup/polkadot/binaries"
+  retention_days: 7
+  compress: true
+  exclude_patterns:
+    - "*.tmp"
+    - "*.old"
+
+# Logging configuration
+logging:
+  enabled: true
+  file: "/var/log/polkadot/binary_updates.log"
+  level: "INFO"
+  max_size: "100M"
+  rotate: true
+  keep: 5
+
+# Pre/Post installation hooks
+hooks:
+  pre_install:
+    - name: "backup_db"
+      enabled: true
+      command: "/usr/local/bin/backup_polkadot_db.sh"
+      timeout: 3600
+    - name: "stop_service"
+      enabled: true
+      command: "systemctl stop polkadot"
+      timeout: 300
+  post_install:
+    - name: "start_service"
+      enabled: true
+      command: "systemctl start polkadot"
+      timeout: 300
+    - name: "notify_team"
+      enabled: false
+      command: "/usr/local/bin/notify_slack.sh"
+      timeout: 60
+
+# Service configuration
+polkadot_service_enabled: true   # Set to false to disable the service
+polkadot_service_state: "started" # Can be: started, stopped, restarted
+
+# Resource management
+resource_limits:
+  disk_space_min: "10G"
+  memory_min: "16G"
+  check_enabled: true
+  monitoring:
+    disk_warning_threshold: "80"
+    memory_warning_threshold: "90"
+
+# Security settings
+security:
+  verify_checksum: true
+  verify_signature: true
+  required_permissions: "0755"
+  binary_owner: "polkadot"
+  binary_group: "polkadot"

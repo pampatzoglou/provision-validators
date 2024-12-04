@@ -1,0 +1,36 @@
+[Unit]
+Description=Polkadot Node
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=polkadot
+Group=polkadot
+Environment="RUST_BACKTRACE=1"
+ExecStart=/usr/local/bin/polkadot \
+    --config /data/polkadot/config.json \
+    --validator
+Restart=always
+RestartSec=10
+LimitNOFILE=10000
+WorkingDirectory=/home/polkadot
+StateDirectory=polkadot
+LogsDirectory=polkadot
+RuntimeDirectory=polkadot
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/polkadot /var/run/polkadot /var/log/polkadot /home/polkadot/.local/share/polkadot
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+
+[Install]
+WantedBy=multi-user.target

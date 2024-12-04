@@ -1,0 +1,125 @@
+---
+# defaults file for admin
+# Grafana Agent Configuration
+grafana_agent:
+  version: "0.39.1"
+  install_dir: "/usr/local/bin"
+  config_dir: "/etc/grafana-agent"
+  data_dir: "/var/lib/grafana-agent"
+  user: "grafana-agent"
+  group: "grafana-agent"
+  enabled: true
+  remote_write:
+    - url: "http://prometheus:9090/api/v1/write"
+      basic_auth:
+        username: ""
+        password: ""
+  scrape_configs:
+    - job_name: "polkadot"
+      static_configs:
+        - targets: ["localhost:9615"]
+      metrics_path: "/metrics"
+      scrape_interval: "15s"
+    - job_name: "node"
+      static_configs:
+        - targets: ["localhost:9100"]
+      metrics_path: "/metrics"
+      scrape_interval: "15s"
+
+# Node Exporter Configuration
+node_exporter:
+  version: "1.7.0"
+  enabled: false  # Optional installation
+  install_dir: "/usr/local/bin"
+  port: 9100
+  options:
+    - "--collector.systemd"
+    - "--collector.processes"
+    - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run)($|/)"
+
+# Promtail Configuration
+promtail:
+  version: "2.9.2"
+  enabled: false  # Optional installation
+  install_dir: "/usr/local/bin"
+  config_dir: "/etc/promtail"
+  positions_dir: "/var/lib/promtail"
+  user: "promtail"
+  group: "promtail"
+  port: 9080
+  loki_url: "http://loki:3100/loki/api/v1/push"
+  scrape_configs:
+    - job_name: polkadot
+      static_configs:
+        - targets:
+            - localhost
+          labels:
+            job: polkadot
+            host: "{{ inventory_hostname }}"
+            __path__: /var/log/polkadot/*.log
+    - job_name: system
+      static_configs:
+        - targets:
+            - localhost
+          labels:
+            job: system
+            host: "{{ inventory_hostname }}"
+            __path__: 
+              - /var/log/syslog
+              - /var/log/auth.log
+
+# Monit Configuration
+monit:
+  enabled: true
+  config_dir: "/etc/monit"
+  config_file: "/etc/monit/monitrc"
+  include_dir: "/etc/monit/conf.d"
+  check_interval: 30
+  start_delay: 120
+  http_interface:
+    enabled: true
+    port: 2812
+    address: "localhost"
+    allow:
+      - "localhost"
+  alerts:
+    email:
+      enabled: false
+      server: "smtp.example.com"
+      port: 587
+      username: ""
+      password: ""
+      to: "admin@example.com"
+      from: "monit@example.com"
+
+  # Monit checks
+  checks:
+    system:
+      enabled: true
+      cpu_usage: 95
+      memory_usage: 90
+      swap_usage: 25
+      load_average: [3, 5, 7]
+    filesystem:
+      enabled: true
+      space_usage: 90
+    process:
+      polkadot:
+        enabled: true
+        pidfile: "/var/run/polkadot.pid"
+        start: "/usr/bin/systemctl start polkadot"
+        stop: "/usr/bin/systemctl stop polkadot"
+        restart: "/usr/bin/systemctl restart polkadot"
+        cpu_usage: 90
+        memory_usage: 90
+        memory_kb: 14000000  # 14GB
+    network:
+      enabled: true
+      interfaces: ["eth0"]
+      download_speed: 10000000  # bytes/second
+      upload_speed: 10000000    # bytes/second
+    custom:
+      peer_count:
+        enabled: true
+        script: "/usr/local/bin/check_polkadot_peers.sh"
+        min_peers: 10
