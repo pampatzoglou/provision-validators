@@ -2,6 +2,16 @@
 
 This role installs and configures a Polkadot validator node with security best practices and monitoring integration.
 
+## New Features
+
+### Lifecycle Management
+- Enhanced lifecycle management with sync, upgrade, and maintenance phases
+- Comprehensive rollback mechanism for upgrades
+
+### Backup Capabilities
+- Automated backup and restore procedures
+- Configurable retention policies and storage options
+
 ## Features
 
 - Secure systemd service configuration
@@ -11,6 +21,8 @@ This role installs and configures a Polkadot validator node with security best p
 - Dedicated system user and group
 - Directory structure management
 - Prometheus metrics exposure
+- AppArmor service protection
+- Lifecycle management (sync, upgrade, maintenance)
 
 ## Requirements
 
@@ -55,6 +67,37 @@ polkadot_validator_mode: true
 polkadot_telemetry_enabled: false
 ```
 
+### Lifecycle Management
+```yaml
+lifecycle:
+  sync:
+    enabled: false    # Enable blockchain sync phase
+  upgrade:
+    enabled: false    # Enable binary upgrade phase
+  maintenance:
+    enabled: false    # Enable maintenance phase
+  rollback:
+    enabled: false    # Enable rollback mechanism for upgrades
+```
+
+### Backup Capabilities
+```yaml
+backup:
+  enabled: false      # Enable automated backup and restore procedures
+  retention_policy:   # Configurable retention policy (e.g., daily, weekly, monthly)
+  storage_options:    # Configurable storage options (e.g., local, S3, GCS)
+```
+
+### AppArmor Configuration
+```yaml
+apparmor:
+  enabled: true
+  profiles:
+    polkadot:
+      enabled: true    # Enable AppArmor profile for Polkadot
+      enforce: true    # Set to enforce mode (false for complain mode)
+```
+
 ## Dependencies
 
 Required Ansible collections:
@@ -73,6 +116,44 @@ Required Ansible collections:
         polkadot_telemetry_enabled: false
 ```
 
+## Usage
+
+### Basic Installation
+```bash
+# Run basic installation and setup
+ansible-playbook playbook.yaml
+```
+
+### Lifecycle Operations
+
+The role supports different lifecycle operations that can be triggered via command-line parameters:
+
+1. **Sync Operation**
+   ```bash
+   # Trigger blockchain sync
+   ansible-playbook playbook.yaml -e "lifecycle.sync.enabled=true"
+   ```
+
+2. **Upgrade Operation**
+   ```bash
+   # Perform binary upgrade
+   ansible-playbook playbook.yaml -e "lifecycle.upgrade.enabled=true"
+   ```
+
+3. **Maintenance Operation**
+   ```bash
+   # Run maintenance tasks
+   ansible-playbook playbook.yaml -e "lifecycle.maintenance.enabled=true"
+   ```
+
+4. **Rollback Operation**
+   ```bash
+   # Trigger rollback mechanism for upgrades
+   ansible-playbook playbook.yaml -e "lifecycle.rollback.enabled=true"
+   ```
+
+Note: Lifecycle operations are mutually exclusive. When a lifecycle operation is active, the basic setup tasks will not run.
+
 ## Security Features
 
 - Dedicated system user with minimal privileges
@@ -84,6 +165,11 @@ Required Ansible collections:
   * ReadWritePaths restrictions
 - UFW firewall with restrictive rules
 - Binary signature verification
+- AppArmor Mandatory Access Control:
+  * Fine-grained resource access control
+  * Network access restrictions
+  * File system access limitations
+  * Protection against privilege escalation
 
 ## Directory Structure
 

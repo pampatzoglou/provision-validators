@@ -9,6 +9,9 @@ polkadot_base_url: "https://github.com/paritytech/polkadot-sdk/releases/download
 # Base directory for versioned binaries
 binary_base_dir: "/usr/local/lib/polkadot"
 
+# Data directory
+data_dir: "/data/polkadot"
+
 # Binary names and paths
 polkadot_binaries:
   - name: "polkadot"
@@ -35,17 +38,115 @@ verify_binary_hash: true
 binary_hash_cache_dir: "/var/cache/polkadot/hashes"
 
 # Health check configuration
-health_check:
+health_checks:
   enabled: true
   max_retries: 3
   retry_interval: 60
-  checks:
-    - type: "process"
-      pattern: "polkadot.*--validator"
-    - type: "rpc"
+  timeout: 300  # 5 minutes total timeout
+  
+  # Process checks
+  process_checks:
+    - name: "Polkadot Validator Process"
+      command: "pgrep -f 'polkadot.*--validator'"
+      expected_status: 0
+      severity: critical
+
+  # Port checks
+  port_checks:
+    - name: "P2P Port"
+      port: 30333
+      protocol: tcp
+      severity: critical
+    - name: "RPC Port"
+      port: 9933
+      protocol: tcp
+      severity: high
+    - name: "WebSocket Port"
+      port: 9944
+      protocol: tcp
+      severity: high
+    - name: "Prometheus Port"
+      port: 9615
+      protocol: tcp
+      severity: low
+
+  # RPC Health Checks
+  rpc_checks:
+    - name: "System Health"
       endpoint: "http://localhost:9933"
       method: "system_health"
-      timeout: 10
+      expected_response:
+        is_syncing: false
+        should_have_peers: true
+      severity: critical
+
+    - name: "Chain Head"
+      endpoint: "http://localhost:9933"
+      method: "chain_getHead"
+      expected_response:
+        not_null: true
+      severity: high
+
+  # Blockchain Specific Checks
+  blockchain_checks:
+    - name: "Block Production"
+      method: "check_block_production"
+      min_blocks_per_hour: 240  # Expect ~1 block every 15 seconds
+      max_missed_blocks: 10
+      severity: critical
+
+    - name: "Peer Connectivity"
+      min_peer_count: 3
+      max_peer_count: 50
+      severity: high
+
+  # Notification Configuration
+  notifications:
+    enabled: true
+    channels:
+      - type: "email"
+        recipients: 
+          - "admin@example.com"
+      - type: "slack"
+        webhook_url: "{{ slack_webhook_url | default('') }}"
+    
+    severity_thresholds:
+      critical: true
+      high: true
+      low: false
+
+# Firewall Configuration
+firewall:
+  type: "{{ 'ufw' if ansible_os_family == 'Debian' else 'firewalld' if ansible_os_family == 'RedHat' else 'none' }}"
+  enabled: true
+  default_incoming_policy: deny
+  default_outgoing_policy: allow
+  rules:
+    - port: 30333
+      proto: tcp
+      rule: allow
+    - port: 9933
+      proto: tcp
+      rule: allow
+    - port: 9944
+      proto: tcp
+      rule: allow
+    - port: 9615
+      proto: tcp
+      rule: allow
+
+# UFW-specific configuration (Debian-based systems)
+ufw:
+  enabled: "{{ firewall.enabled and firewall.type == 'ufw' }}"
+  default_incoming_policy: "{{ firewall.default_incoming_policy }}"
+  default_outgoing_policy: "{{ firewall.default_outgoing_policy }}"
+  rules: "{{ firewall.rules }}"
+
+# FirewallD-specific configuration (RedHat-based systems)
+firewalld:
+  enabled: "{{ firewall.enabled and firewall.type == 'firewalld' }}"
+  default_zone: public
+  rules: "{{ firewall.rules }}"
 
 # Backup configuration
 backup:
@@ -121,3 +222,98 @@ security:
   required_permissions: "0755"
   binary_owner: "polkadot"
   binary_group: "polkadot"
+
+# Binary configuration
+binary:
+  verify_signature: true
+  required_permissions: "0755"
+  binary_owner: "polkadot"
+  binary_group: "polkadot"
+
+# Backup Configuration
+backup_config:
+  enabled: true
+  # Types of backups to perform
+  types:
+    - chain_data  # Blockchain data
+    - keys        # Validator keys
+    - config      # Configuration files
+  # Backup schedule
+  schedule:
+    chain_data: "0 2 * * *"  # Daily at 2 AM
+    keys: "0 3 * * 0"        # Weekly on Sunday at 3 AM
+    config: "0 4 1 * *"      # Monthly on 1st at 4 AM
+  # Retention policy
+  retention:
+    chain_data: 7    # days
+    keys: 30         # days
+    config: 90       # days
+  # Backup storage
+  storage:
+    local_path: "/var/backups/polkadot"
+    remote:
+      enabled: true
+      type: "s3"  # s3, sftp, or nfs
+      path: "s3://my-validator-backup"
+  # Compression settings
+  compression:
+    enabled: true
+    algorithm: "lz4"  # lz4, zstd, or gzip
+    level: 3
+  # Encryption settings
+  encryption:
+    enabled: true
+    algorithm: "aes-256-gcm"
+
+# Lifecycle Synchronization Configuration
+lifecycle:
+  sync:
+    # Allowed sync types: 'warp', 'fast', 'full'
+    # - warp: Fastest sync method, downloads only recent chain state
+    # - fast: Balanced sync method with moderate download time
+    # - full: Most comprehensive sync, downloads entire blockchain history
+    type: warp
+    enabled: false
+    snapshots:
+      enabled: false
+      kusama:
+        paritydb: http://snapshot.stakeworld.io/paritydb-ksmcc3.lz4
+        rocksdb: http://snapshot.stakeworld.io/rocksdb-ksmcc3.lz4
+      polkadot:
+        paritydb: http://snapshot.stakeworld.io/paritydb-polkadot.lz4
+        rocksdb: http://snapshot.stakeworld.io/rocksdb-polkadot.lz4 
+
+# Upgrade and Rollback Configuration
+upgrade:
+  # Upgrade strategy (rolling, blue-green, canary)
+  strategy: rolling
+  
+  # Maximum allowed downtime during upgrade (in seconds)
+  max_downtime: 300
+  
+  # Rollback configuration
+  rollback:
+    enabled: true
+    # Number of previous versions to keep for potential rollback
+    keep_versions: 3
+    
+    # Conditions that trigger automatic rollback
+    auto_rollback:
+      # Rollback if health checks fail after upgrade
+      on_health_check_failure: true
+      
+      # Rollback if block production stops
+      on_block_production_halt: true
+      
+      # Maximum time to wait for successful upgrade before considering rollback
+      max_upgrade_validation_time: 600  # 10 minutes
+    
+    # Notification preferences for rollback events
+    notifications:
+      enabled: true
+      channels:
+        - type: email
+          recipients: 
+            - admin@example.com
+        - type: slack
+          webhook_url: "{{ slack_webhook_url | default('') }}"

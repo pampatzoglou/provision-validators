@@ -1,0 +1,32 @@
+---
+# FirewallD tasks for RedHat-based systems
+- name: Install FirewallD
+  package:
+    name: firewalld
+    state: present
+  when: firewall.type == 'firewalld'
+
+- name: Start and enable FirewallD
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  when: firewall.type == 'firewalld' and firewall.enabled
+
+- name: Set default zone
+  firewalld:
+    zone: "{{ firewalld.default_zone }}"
+    state: present
+    permanent: yes
+    immediate: yes
+  when: firewall.type == 'firewalld' and firewall.enabled
+
+- name: Configure FirewallD rules
+  firewalld:
+    port: "{{ item.port }}/{{ item.proto }}"
+    zone: "{{ firewalld.default_zone }}"
+    permanent: yes
+    state: "{{ 'enabled' if item.rule == 'allow' else 'disabled' }}"
+    immediate: yes
+  loop: "{{ firewalld.rules }}"
+  when: firewall.type == 'firewalld' and firewall.enabled

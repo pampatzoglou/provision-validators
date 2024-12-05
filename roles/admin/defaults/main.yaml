@@ -131,17 +131,41 @@ teleport:
     enabled: "{{ apparmor.enabled and apparmor.profiles.teleport.enabled }}"
     enforce: "{{ apparmor.profiles.teleport.enforce }}"
 
-# UFW Configuration
-ufw:
+# Firewall Configuration
+firewall:
+  type: "{{ 'ufw' if ansible_os_family == 'Debian' else 'firewalld' if ansible_os_family == 'RedHat' else 'none' }}"
   enabled: true
-  default_incoming_policy: "deny"
-  default_outgoing_policy: "allow"
+  default_incoming_policy: deny
+  default_outgoing_policy: allow
   rules:
-    - { port: 22, proto: "tcp", rule: "allow" }  # SSH
-    - { port: 3022, proto: "tcp", rule: "allow" } # Teleport SSH
-    - { port: 9100, proto: "tcp", rule: "allow" }  # Node Exporter
-    - { port: 9080, proto: "tcp", rule: "allow" }  # Promtail
-    - { port: 2812, proto: "tcp", rule: "allow" }  # Monit
+    - port: 22
+      proto: tcp
+      rule: allow
+    - port: 3022
+      proto: tcp
+      rule: allow
+    - port: 9100
+      proto: tcp
+      rule: allow
+    - port: 9080
+      proto: tcp
+      rule: allow
+    - port: 2812
+      proto: tcp
+      rule: allow
+
+# UFW-specific configuration (Debian-based systems)
+ufw:
+  enabled: "{{ firewall.enabled and firewall.type == 'ufw' }}"
+  default_incoming_policy: "{{ firewall.default_incoming_policy }}"
+  default_outgoing_policy: "{{ firewall.default_outgoing_policy }}"
+  rules: "{{ firewall.rules }}"
+
+# FirewallD-specific configuration (RedHat-based systems)
+firewalld:
+  enabled: "{{ firewall.enabled and firewall.type == 'firewalld' }}"
+  default_zone: public
+  rules: "{{ firewall.rules }}"
 
 # AppArmor Configuration
 apparmor:
@@ -189,6 +213,34 @@ hardening:
     apparmor:
       enabled: "{{ apparmor.enabled and apparmor.profiles.fail2ban.enabled }}"
       enforce: "{{ apparmor.profiles.fail2ban.enforce }}"
+
+# Resource Monitoring Configuration
+monitoring:
+  enabled: true
+  # Resource thresholds for alerts
+  thresholds:
+    cpu_usage: 80  # percentage
+    memory_usage: 90  # percentage
+    disk_usage: 85  # percentage
+    disk_iops: 5000  # operations per second
+    network_bandwidth: 100  # MB/s
+  # Collection intervals
+  intervals:
+    resource_check: 60  # seconds
+    metric_retention: 30  # days
+  # Alert configuration
+  alerts:
+    cpu_sustained: 300  # seconds above threshold
+    memory_sustained: 300  # seconds above threshold
+    disk_sustained: 600  # seconds above threshold
+  # Alert channels
+  notification:
+    slack:
+      enabled: false
+      webhook_url: ""  # Set via vault
+    email:
+      enabled: false
+      recipients: []  # Set via vault
 
 # OpsGenie Heartbeat Configuration
 opsgenie:

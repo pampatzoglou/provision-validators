@@ -1,134 +1,33 @@
 ---
 # tasks file for polkadot
-- name: Check for existing binaries
-  stat:
-    path: "{{ item.link }}"
-  loop: "{{ polkadot_binaries }}"
-  register: binary_checks
 
-- name: Create temporary download directory
-  file:
-    path: "{{ download_temp_dir }}"
-    state: directory
-    mode: '0755'
-  when: binary_checks.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+- name: Run setup tasks
+  include_tasks: setup.yaml
+  when: not (lifecycle.sync.enabled | default(false) | bool or
+            lifecycle.upgrade.enabled | default(false) | bool or
+            lifecycle.maintenance.enabled | default(false) | bool)
+  tags: ['setup']
 
-- name: Create versioned binary directory
-  file:
-    path: "{{ binary_base_dir }}/{{ polkadot_version }}"
-    state: directory
-    mode: '0755'
-  become: true
-  when: binary_checks.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+- name: Run sync tasks
+  include_tasks: sync.yaml
+  when: lifecycle.sync.enabled | default(false) | bool
+  tags: ['lifecycle', 'sync']
 
-- name: Download Polkadot binaries
-  get_url:
-    url: "{{ polkadot_base_url }}/polkadot-{{ polkadot_version }}/{{ item.item.name }}"
-    dest: "{{ binary_base_dir }}/{{ polkadot_version }}/{{ item.item.name }}"
-    mode: '0755'
-  loop: "{{ binary_checks.results }}"
-  when: not item.stat.exists
-  become: true
+- name: Run upgrade tasks
+  include_tasks: upgrade.yaml
+  when: lifecycle.upgrade.enabled | default(false) | bool
+  tags: ['lifecycle', 'upgrade']
 
-- name: Create binary symlinks
-  file:
-    src: "{{ binary_base_dir }}/{{ polkadot_version }}/{{ item.item.name }}"
-    dest: "{{ item.item.link }}"
-    state: link
-    force: yes
-  loop: "{{ binary_checks.results }}"
-  when: not item.stat.exists
-  become: true
+- name: Run maintenance tasks
+  include_tasks: maintenance.yaml
+  when: lifecycle.maintenance.enabled | default(false) | bool
+  tags: ['lifecycle', 'maintenance']
 
-- name: Create polkadot group
-  group:
-    name: "{{ polkadot.group | default('polkadot') }}"
-    system: yes
-    state: present
+- name: Run health checks
+  include_tasks: health_check.yaml
+  tags: ['health', 'monitoring']
 
-- name: Create polkadot user
-  user:
-    name: "{{ polkadot.user | default('polkadot') }}"
-    group: "{{ polkadot.group | default('polkadot') }}"
-    system: yes
-    shell: /sbin/nologin
-    create_home: no
-    state: present
-
-- name: Configure firewall rules
-  block:
-    - name: Open Polkadot P2P port
-      community.general.ufw:
-        rule: allow
-        port: '30333'
-        proto: tcp
-
-    - name: Open Polkadot RPC port
-      community.general.ufw:
-        rule: allow
-        port: '9933'
-        proto: tcp
-
-    - name: Open Polkadot WebSocket port
-      community.general.ufw:
-        rule: allow
-        port: '9944'
-        proto: tcp
-
-    - name: Open Polkadot Prometheus port
-      community.general.ufw:
-        rule: allow
-        port: '9615'
-        proto: tcp
-
-- name: Create required directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: "{{ polkadot.user | default('polkadot') }}"
-    group: "{{ polkadot.group | default('polkadot') }}"
-    mode: '0755'
-  loop:
-    - /data/polkadot
-    - /var/run/polkadot
-    - /var/log/polkadot
-    - /home/polkadot/.local/share/polkadot
-
-- name: Configure polkadot service
-  block:
-    - name: Template systemd service file
-      template:
-        src: polkadot.service.j2
-        dest: /etc/systemd/system/polkadot.service
-        mode: '0644'
-      notify: restart polkadot
-      when: not ansible_connection == 'docker'
-      tags: ['polkadot']
-
-    - name: Template configuration file
-      template:
-        src: config.json.j2
-        dest: /data/polkadot/config.json
-        owner: "{{ polkadot.user | default('polkadot') }}"
-        group: "{{ polkadot.group | default('polkadot') }}"
-        mode: '0644'
-      notify: restart polkadot
-
-    - name: Manage polkadot service
-      systemd:
-        name: polkadot
-        state: "{{ polkadot_service_state }}"
-        enabled: "{{ polkadot_service_enabled }}"
-        daemon_reload: yes
-      when: not ansible_connection == 'docker'
-      tags: ['polkadot']
-
-    - name: Restart polkadot service
-      meta: flush_handlers
-
-- name: Template monit configuration
-  template:
-    src: monit_polkadot.j2
-    dest: /etc/monit/conf.d/polkadot
-    mode: '0644'
-  notify: reload monit
+- name: Configure backups
+  include_tasks: backup.yaml
+  tags: ['backup', 'setup']
+  when: backup_config.enabled | default(true) | bool

@@ -1,0 +1,143 @@
+---
+# Setup tasks for polkadot role
+
+- block:
+    - name: Create polkadot group
+      group:
+        name: "{{ polkadot.group | default('polkadot') }}"
+        system: yes
+        state: present
+
+    - name: Create polkadot user
+      user:
+        name: "{{ polkadot.user | default('polkadot') }}"
+        group: "{{ polkadot.group | default('polkadot') }}"
+        system: yes
+        shell: /sbin/nologin
+        create_home: no
+        state: present
+
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ polkadot.user | default('polkadot') }}"
+        group: "{{ polkadot.group | default('polkadot') }}"
+        mode: '0755'
+      loop:
+        - /data/polkadot
+        - /var/run/polkadot
+        - /var/log/polkadot
+        - /home/polkadot/.local/share/polkadot
+  tags: ['setup', 'user']
+
+- block:
+    - name: Check for existing binaries
+      stat:
+        path: "{{ item.link }}"
+      loop: "{{ polkadot_binaries }}"
+      register: binary_checks
+
+    - name: Create temporary download directory
+      file:
+        path: "{{ download_temp_dir }}"
+        state: directory
+        mode: '0755'
+      when: binary_checks.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+
+    - name: Create versioned binary directory
+      file:
+        path: "{{ binary_base_dir }}/{{ polkadot_version }}"
+        state: directory
+        mode: '0755'
+      become: true
+      when: binary_checks.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+
+    - name: Download Polkadot binaries
+      get_url:
+        url: "{{ polkadot_base_url }}/polkadot-{{ polkadot_version }}/{{ item.item.name }}"
+        dest: "{{ binary_base_dir }}/{{ polkadot_version }}/{{ item.item.name }}"
+        mode: '0755'
+      loop: "{{ binary_checks.results }}"
+      when: not item.stat.exists
+      become: true
+
+    - name: Create binary symlinks
+      file:
+        src: "{{ binary_base_dir }}/{{ polkadot_version }}/{{ item.item.name }}"
+        dest: "{{ item.item.link }}"
+        state: link
+        force: yes
+      loop: "{{ binary_checks.results }}"
+      when: not item.stat.exists
+      become: true
+  tags: ['setup', 'binary']
+
+- name: Configure firewall rules
+  block:
+    - name: Include UFW tasks
+      include_tasks: ufw.yaml
+      when: firewall.type == 'ufw'
+
+    - name: Include FirewallD tasks
+      include_tasks: firewalld.yaml
+      when: firewall.type == 'firewalld'
+  when: firewall.enabled
+  tags: ['setup', 'firewall']
+
+- block:
+    - name: Template systemd service file
+      template:
+        src: polkadot.service.j2
+        dest: /etc/systemd/system/polkadot.service
+        mode: '0644'
+      notify: restart polkadot
+      when: not ansible_connection == 'docker'
+
+    - name: Template configuration file
+      template:
+        src: config.json.j2
+        dest: /data/polkadot/config.json
+        owner: "{{ polkadot.user | default('polkadot') }}"
+        group: "{{ polkadot.group | default('polkadot') }}"
+        mode: '0644'
+      notify: restart polkadot
+
+    - name: Manage polkadot service
+      systemd:
+        name: polkadot
+        state: "{{ polkadot_service_state }}"
+        enabled: "{{ polkadot_service_enabled }}"
+        daemon_reload: yes
+      when: not ansible_connection == 'docker'
+
+    - name: Restart polkadot service
+      meta: flush_handlers
+  tags: ['setup', 'service']
+
+- block:
+    - name: Template monit configuration
+      template:
+        src: monit_polkadot.j2
+        dest: /etc/monit/conf.d/polkadot
+        mode: '0644'
+      notify: reload monit
+  tags: ['setup', 'monitoring']
+
+- block:
+    - name: Template AppArmor profile
+      template:
+        src: polkadot.apparmor.j2
+        dest: /etc/apparmor.d/usr.bin.polkadot
+        mode: '0644'
+      when: apparmor.enabled | default(false) | bool and
+            apparmor.profiles.polkadot.enabled | default(false) | bool
+      notify: reload apparmor
+
+    - name: Set AppArmor profile enforcement
+      command: aa-enforce usr.bin.polkadot
+      when: apparmor.enabled | default(false) | bool and
+            apparmor.profiles.polkadot.enabled | default(false) | bool and
+            apparmor.profiles.polkadot.enforce | default(false) | bool
+      notify: reload apparmor
+  tags: ['setup', 'security', 'apparmor']

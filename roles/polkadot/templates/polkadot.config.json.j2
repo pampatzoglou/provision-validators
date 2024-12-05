@@ -1,7 +1,7 @@
 {
   "name": "{{ validator_name | default('polkadot-validator') }}",
   "chain": "{{ chain_name | default('polkadot') }}",
-  "base-path": "/data/polkadot",
+  "base-path": "{{ data_dir }}",
   "validator": true,
   "rpc-cors": "all",
   "prometheus-external": true,

@@ -2,6 +2,13 @@
 
 This role manages system administration tasks, monitoring, and secure access for validator nodes, with a focus on hardening and configuration.
 
+## New Features
+
+### Resource Monitoring
+- Comprehensive resource monitoring with configurable thresholds
+- Alerts via Slack and email
+- Integration with Grafana Agent for detailed metrics
+
 ## Features
 
 - UFW firewall configuration

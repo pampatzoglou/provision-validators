@@ -4,6 +4,21 @@
 
 This Ansible collection provides a comprehensive, secure, and automated solution for deploying and managing Polkadot validator nodes. Designed with a focus on security, observability, and reliability, the collection offers robust infrastructure-as-code capabilities.
 
+## New Features
+
+### Sync Type Validation
+- Restricted sync types to 'warp', 'fast', and 'full'
+- Validation added to ensure correct sync type usage
+
+### Upgrade and Rollback Mechanism
+- Comprehensive upgrade tasks with rollback strategy
+- Backup and restore capabilities with notification system
+
+### Monitoring and Backup Infrastructure
+- Resource monitoring moved to admin role
+- Flexible monitoring script with Slack and email notifications
+- Integration with Grafana Agent for metrics
+
 ## Architecture
 
 ```mermaid
@@ -21,7 +36,6 @@ graph TD
         end
         
         subgraph Monitoring Components
-            G[Prometheus]
             H[Grafana Agent]
             I[Node Exporter]
             J[Promtail]
@@ -29,7 +43,6 @@ graph TD
         end
     end
 
-    B --> G
     B --> H
     B --> I
     B --> J
@@ -56,7 +69,6 @@ graph LR
     end
 
     subgraph Monitoring
-        D[Prometheus]
         E[Grafana Agent]
         F[Node Exporter]
         G[Promtail]
@@ -83,11 +95,6 @@ graph LR
     K -->|Protects| F
     K -->|Protects| G
     K -->|Protects| H
-
-    D -->|Scrapes Metrics| E
-    D -->|Collects System Metrics| F
-
-    G -->|Forwards Logs| D
 
     I -->|Secures Access| A
     J -->|Validates Binaries| A
@@ -191,7 +198,6 @@ opsgenie:
 - Service-specific security profiles
 
 ### 🖥️ Monitoring
-- Prometheus metrics collection
 - Grafana Agent integration
 - Monit service monitoring
 - Node Exporter system metrics
@@ -271,9 +277,62 @@ source venv/bin/activate
 ansible-playbook --ask-become-pass -e user=$USER playbook.yaml
 ```
 
+### Lifecycle Operations
+
+The playbook supports different lifecycle operations for managing Polkadot validator nodes:
+
+1. **Initial Setup**
+   ```bash
+   ansible-playbook playbook.yaml
+   ```
+
+2. **Blockchain Sync**
+   ```bash
+   ansible-playbook playbook.yaml -e "lifecycle.sync.enabled=true"
+   ```
+
+3. **Binary Upgrade**
+   ```bash
+   ansible-playbook playbook.yaml -e "lifecycle.upgrade.enabled=true"
+   ```
+
+4. **Maintenance**
+   ```bash
+   ansible-playbook playbook.yaml -e "lifecycle.maintenance.enabled=true"
+   ```
+
+5. **Health Checks**
+   ```bash
+   ansible-playbook playbook.yaml --tags health
+   ```
+
+Note: Lifecycle operations are mutually exclusive. When a lifecycle operation is active, the basic setup tasks will not run.
+
+### Tags
+
+The playbook supports various tags for targeted execution:
+
+- `setup`: Run only setup tasks
+- `lifecycle`: Run lifecycle management tasks
+- `sync`: Run blockchain sync tasks
+- `upgrade`: Run upgrade tasks
+- `maintenance`: Run maintenance tasks
+- `security`: Run security-related tasks
+- `monitoring`: Run monitoring-related tasks
+- `apparmor`: Run AppArmor configuration tasks
+
+Example:
+```bash
+# Run only security-related tasks
+ansible-playbook playbook.yaml --tags security
+
+# Run setup and monitoring tasks
+ansible-playbook playbook.yaml --tags "setup,monitoring"
+```
+
 ## Contributing
 
-1. Fork the repository
+1. Clone the repository
 2. Create a feature branch
 3. Commit your changes
 4. Push and create a Pull Request

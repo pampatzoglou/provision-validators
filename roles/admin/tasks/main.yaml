@@ -1,8 +1,18 @@
 ---
 # tasks file for admin
-- name: Include UFW tasks
-  include_tasks: ufw.yaml
-  when: ansible_os_family == "Debian"
+- name: Include firewall tasks
+  block:
+    - name: Include UFW tasks
+      include_tasks: ufw.yaml
+      when: firewall.type == 'ufw'
+      tags: ['firewall', 'ufw']
+
+    - name: Include FirewallD tasks
+      include_tasks: firewalld.yaml
+      when: firewall.type == 'firewalld'
+      tags: ['firewall', 'firewalld']
+  when: firewall.enabled
+  tags: ['firewall']
 
 - name: Include SSH hardening
   include_tasks: ssh_hardening.yaml

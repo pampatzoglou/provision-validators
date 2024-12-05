@@ -1,0 +1,65 @@
+---
+# Resource Monitoring Tasks
+
+- name: Ensure monitoring dependencies
+  package:
+    name:
+      - sysstat
+      - iotop
+      - nethogs
+    state: present
+  when: monitoring.enabled | bool
+
+- name: Create monitoring scripts directory
+  file:
+    path: "{{ node_exporter.install_dir }}/monitoring"
+    state: directory
+    mode: '0755'
+  when: monitoring.enabled | bool
+
+- name: Install resource monitoring script
+  template:
+    src: monitor_resources.sh.j2
+    dest: "{{ node_exporter.install_dir }}/monitoring/monitor_resources.sh"
+    mode: '0755'
+  when: monitoring.enabled | bool
+
+- name: Configure monitoring cron job
+  cron:
+    name: "Monitor system resources"
+    job: "{{ node_exporter.install_dir }}/monitoring/monitor_resources.sh"
+    minute: "*/{{ monitoring.intervals.resource_check // 60 }}"
+    state: "{{ monitoring.enabled | bool | ternary('present', 'absent') }}"
+
+- name: Create monitoring data directory
+  file:
+    path: "{{ grafana_agent.data_dir }}/monitoring"
+    state: directory
+    mode: '0755'
+    owner: "{{ grafana_agent.user }}"
+    group: "{{ grafana_agent.group }}"
+  when: monitoring.enabled | bool
+
+- name: Configure logrotate for monitoring logs
+  template:
+    src: monitoring.logrotate.j2
+    dest: /etc/logrotate.d/system-monitoring
+    mode: '0644'
+  when: monitoring.enabled | bool
+
+- name: Update Grafana Agent scrape configs
+  blockinfile:
+    path: "{{ grafana_agent.config_dir }}/agent.yaml"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - RESOURCE MONITORING"
+    block: |
+      - job_name: resource_monitoring
+        static_configs:
+          - targets: ['localhost:{{ node_exporter.port }}']
+        metrics_path: /metrics
+        scrape_interval: {{ monitoring.intervals.resource_check }}s
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: '^(node_cpu|node_memory|node_disk|node_network).*'
+            action: keep
+  notify: restart grafana-agent
+  when: monitoring.enabled | bool and grafana_agent.enabled | bool

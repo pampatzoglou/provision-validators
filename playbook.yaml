@@ -43,3 +43,9 @@
   # - name: Reload AppArmor
   #   command: apparmor_parser -r /etc/apparmor.d/my_apparmor_profile
   #   tags: ['apparmor']
+
+  # post_tasks:
+  # - name: Check working
+  #   polkadot --version
+  # polkadot-execute-worker --version
+  # polkadot-prepare-worker --version
