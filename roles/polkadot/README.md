@@ -2,6 +2,31 @@
 
 This role installs and configures a Polkadot validator node with security best practices and monitoring integration.
 
+## Architecture
+
+```mermaid
+graph TD
+    A[Polkadot Validator] --> |Metrics| B[Grafana Agent]
+    B --> C[Prometheus]
+    C --> D[Grafana]
+```
+
+## Services Interaction
+
+```mermaid
+graph LR
+    subgraph Monitoring Stack
+        A[Grafana Agent] --> |Metrics| B[Prometheus]
+        B --> |Visualization| C[Grafana]
+    end
+
+    subgraph Validator Node
+        D[Polkadot Validator]
+    end
+
+    D --> A
+```
+
 ## New Features
 
 ### Lifecycle Management

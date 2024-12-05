@@ -24,38 +24,26 @@ This Ansible collection provides a comprehensive, secure, and automated solution
 ```mermaid
 graph TD
     subgraph Validator Infrastructure
-        A[Polkadot Validator Node] --> |Metrics| B[Monitoring Stack]
-        A --> |Logging| B
-        A --> |Service Management| C[Systemd]
+        A[Polkadot Validator Node] --> |Metrics| B[Grafana Agent]
+        B --> |Metrics| C[Prometheus]
+        C --> |Visualization| D[Grafana]
+        A --> |Logging| E[Monitoring Stack]
+        A --> |Service Management| F[Systemd]
         
         subgraph Security Layer
-            D[UFW Firewall]
-            E[SSH Hardening]
-            F[Binary Signature Verification]
-            M[AppArmor MAC]
-        end
-        
-        subgraph Monitoring Components
-            H[Grafana Agent]
-            I[Node Exporter]
-            J[Promtail]
-            K[Monit]
+            G[UFW Firewall]
+            H[SSH Hardening]
+            I[Binary Signature Verification]
+            J[AppArmor MAC]
         end
     end
 
-    B --> H
-    B --> I
-    B --> J
-    B --> K
-
-    D --> A
-    E --> A
-    F --> A
-    M --> A
-    M --> H
-    M --> I
-    M --> J
-    M --> K
+    E --> B
+    G --> A
+    H --> A
+    I --> A
+    J --> A
+    J --> B
 ```
 
 ## Services Interaction
@@ -64,40 +52,16 @@ graph TD
 graph LR
     subgraph Validator Node
         A[Polkadot Service]
-        B[Systemd]
-        C[UFW Firewall]
+        B[Node Exporter]
     end
 
-    subgraph Monitoring
-        E[Grafana Agent]
-        F[Node Exporter]
-        G[Promtail]
-        H[Monit]
+    subgraph Monitoring Stack
+        C[Grafana Agent] --> |Metrics| D[Prometheus]
+        D --> |Visualization| E[Grafana]
     end
 
-    subgraph Security
-        I[SSH Hardening]
-        J[Binary Verification]
-        K[AppArmor MAC]
-    end
-
-    A -->|Exposes Metrics| D
-    A -->|Logs| G
-    A -->|Managed By| B
-    A -->|Protected By| C
-
-    B -->|Monitors| H
-    B -->|Controls| A
-
-    C -->|Restricts Access| A
-    K -->|Enforces MAC| A
-    K -->|Protects| E
-    K -->|Protects| F
-    K -->|Protects| G
-    K -->|Protects| H
-
-    I -->|Secures Access| A
-    J -->|Validates Binaries| A
+    A --> C
+    B --> C
 ```
 
 ## Security and Hardening Features
@@ -252,7 +216,6 @@ ansible-galaxy install -r requirements.yml
 ## Configuration
 
 Customize deployment through role variables in `group_vars` or `host_vars`:
-
 - `polkadot_version`: Specify Polkadot binary version
 - `validator_name`: Set your validator's name
 - `monitoring_enabled`: Enable/disable monitoring components

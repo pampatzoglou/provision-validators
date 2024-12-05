@@ -212,51 +212,30 @@ opsgenie:
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph "Security Layer"
-        UFW[UFW Firewall]
-        AppArmor[AppArmor MAC]
-        Fail2ban[Fail2ban]
-    end
-
-    subgraph "Services"
-        GrafanaAgent[Grafana Agent]
-        NodeExporter[Node Exporter]
-        Promtail[Promtail]
-        Teleport[Teleport]
-        Monit[Monit]
-    end
-
-    subgraph "System Resources"
-        Files[File System]
-        Network[Network]
-        Memory[Memory]
-        Processes[Processes]
-    end
-
-    UFW --> Network
-    AppArmor --> GrafanaAgent
-    AppArmor --> NodeExporter
-    AppArmor --> Promtail
-    AppArmor --> Teleport
-    AppArmor --> Monit
-    
-    GrafanaAgent --> Files
-    GrafanaAgent --> Network
-    NodeExporter --> Files
-    NodeExporter --> Network
-    Promtail --> Files
-    Promtail --> Network
-    Teleport --> Network
-    Monit --> Processes
-    
-    Fail2ban --> Network
+graph TD
+    A[Node Exporter] --> B[Grafana Agent]
+    C[Polkadot Validator] --> B
+    B --> D[Prometheus]
+    D --> E[Grafana]
 ```
 
-The architecture implements a defense-in-depth approach:
-1. **Network Security**: UFW firewall and Fail2ban protect against unauthorized access
-2. **Service Protection**: AppArmor provides mandatory access control for each service
-3. **Resource Control**: Fine-grained control over file system, network, and process access
+## Services Interaction
+
+```mermaid
+graph LR
+    subgraph Monitoring Stack
+        A[Grafana Agent] --> |Metrics| B[Prometheus]
+        B --> |Visualization| C[Grafana]
+    end
+
+    subgraph Validator Node
+        D[Node Exporter]
+        E[Polkadot Validator]
+    end
+
+    D --> A
+    E --> A
+```
 
 ## Dependencies
 

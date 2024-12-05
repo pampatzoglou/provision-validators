@@ -15,10 +15,16 @@ metrics:
 {% endfor %}
 
   configs:
-{% if grafana_agent.scrape_configs is defined %}
     - name: default
       scrape_configs:
-{{ grafana_agent.scrape_configs | to_nice_yaml(indent=2) | indent(8, first=true) }}
+{% if grafana_agent.node_exporter.enabled | default(false) %}
+        - job_name: 'node_exporter'
+          static_configs:
+            - targets: ['localhost:9100']
+{% else %}
+        - job_name: 'direct_system_metrics'
+          static_configs:
+            - targets: ['localhost:9100']
 {% endif %}
 
 logs:
@@ -30,11 +36,19 @@ logs:
       - url: {{ grafana_agent.loki_url }}
 {% endif %}
     scrape_configs:
-{% if grafana_agent.log_scrape_configs is defined %}
-{{ grafana_agent.log_scrape_configs | to_nice_yaml(indent=2) | indent(4, first=true) }}
+{% if grafana_agent.promtail.enabled | default(false) %}
+      - job_name: 'promtail'
+        static_configs:
+          - targets: ['localhost:9080']
+{% else %}
+      - job_name: 'direct_logs'
+        static_configs:
+          - targets: ['localhost:9080']
 {% endif %}
 
 integrations:
   node_exporter:
-    enabled: true
+    enabled: {{ grafana_agent.node_exporter.enabled | default(true) }}
     include_exporter_metrics: true
+  promtail:
+    enabled: {{ grafana_agent.promtail.enabled | default(true) }}
