@@ -25,10 +25,8 @@ This Ansible collection provides a comprehensive, secure, and automated solution
 graph TD
     subgraph Validator Infrastructure
         A[Polkadot Validator Node] --> |Metrics| B[Grafana Agent]
-        B --> |Metrics| C[Prometheus]
+        B --> |Push Metrics| C[Prometheus]
         C --> |Visualization| D[Grafana]
-        A --> |Logging| E[Monitoring Stack]
-        A --> |Service Management| F[Systemd]
         
         subgraph Security Layer
             G[UFW Firewall]
@@ -36,14 +34,28 @@ graph TD
             I[Binary Signature Verification]
             J[AppArmor MAC]
         end
+
+        subgraph Monitoring Components
+            B
+            K[Node Exporter]
+            L[Promtail]
+            M[Monit]
+        end
+
+        A --> |Logs| L
+        K --> |System Metrics| B
+        M --> |Service Status| B
+        A --> |Service Management| N[Systemd]
     end
 
-    E --> B
-    G --> A
-    H --> A
-    I --> A
-    J --> A
-    J --> B
+    G --> |Network Protection| A
+    H --> |Access Control| A
+    I --> |Binary Validation| A
+    J --> |MAC Policy| A
+    J --> |MAC Policy| B
+    J --> |MAC Policy| K
+    J --> |MAC Policy| L
+    J --> |MAC Policy| M
 ```
 
 ## Services Interaction
@@ -53,15 +65,35 @@ graph LR
     subgraph Validator Node
         A[Polkadot Service]
         B[Node Exporter]
+        C[Grafana Agent]
+        D[Promtail]
+        E[Monit]
+        
+        subgraph Security Layer
+            F[UFW]
+            G[AppArmor]
+            H[SSH]
+        end
     end
 
     subgraph Monitoring Stack
-        C[Grafana Agent] --> |Metrics| D[Prometheus]
-        D --> |Visualization| E[Grafana]
+        I[Prometheus] --> |Visualization| J[Grafana]
+        J --> |Alerts| K[Alert Manager]
     end
 
-    A --> C
-    B --> C
+    A --> |Metrics| C
+    B --> |System Metrics| C
+    D --> |Logs| C
+    E --> |Service Status| C
+    C --> |Push| I
+
+    F --> |Protect| A
+    G --> |MAC| A
+    G --> |MAC| B
+    G --> |MAC| C
+    G --> |MAC| D
+    G --> |MAC| E
+    H --> |Access| A
 ```
 
 ## Security and Hardening Features

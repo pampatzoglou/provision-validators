@@ -213,28 +213,64 @@ opsgenie:
 
 ```mermaid
 graph TD
-    A[Node Exporter] --> B[Grafana Agent]
-    C[Polkadot Validator] --> B
-    B --> D[Prometheus]
-    D --> E[Grafana]
+    subgraph Admin Services
+        A[Grafana Agent] --> |Push Metrics| B[Prometheus]
+        B --> |Visualization| C[Grafana]
+        D[Node Exporter] --> |System Metrics| A
+        E[Promtail] --> |Logs| A
+        F[Monit] --> |Service Status| A
+    end
+
+    subgraph Security
+        G[UFW Firewall]
+        H[AppArmor]
+        I[SSH Hardening]
+    end
+
+    G --> |Network Protection| A
+    H --> |MAC Policy| A
+    H --> |MAC Policy| D
+    H --> |MAC Policy| E
+    H --> |MAC Policy| F
+    I --> |Access Control| A
 ```
 
 ## Services Interaction
 
 ```mermaid
 graph LR
-    subgraph Monitoring Stack
-        A[Grafana Agent] --> |Metrics| B[Prometheus]
-        B --> |Visualization| C[Grafana]
+    subgraph Local Services
+        A[Grafana Agent]
+        B[Node Exporter]
+        C[Promtail]
+        D[Monit]
+        
+        subgraph Security Layer
+            E[UFW]
+            F[AppArmor]
+            G[SSH]
+        end
     end
 
-    subgraph Validator Node
-        D[Node Exporter]
-        E[Polkadot Validator]
+    subgraph Remote Services
+        H[Prometheus]
+        I[Grafana]
+        J[Alert Manager]
     end
 
-    D --> A
-    E --> A
+    B --> |System Metrics| A
+    C --> |Logs| A
+    D --> |Service Status| A
+    A --> |Push| H
+    H --> |Visualization| I
+    I --> |Alerts| J
+
+    E --> |Protect| A
+    F --> |MAC| A
+    F --> |MAC| B
+    F --> |MAC| C
+    F --> |MAC| D
+    G --> |Access| A
 ```
 
 ## Dependencies
