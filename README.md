@@ -23,14 +23,12 @@ This Ansible collection provides a comprehensive, secure, and automated solution
 
 ```mermaid
 graph LR
-    subgraph Validator Node
-        A[Polkadot Validator Node]
-        B[Node Exporter]
-        C[Grafana Agent]
-        D[Promtail]
-        M[Monit] --> |Monitor| C
-        M --> |Monitor| B
-        M --> |Monitor| D
+    subgraph Security
+        H[Firewall]
+        I[SSH Hardening]
+        J[Binary Verify]
+        K[AppArmor MAC]
+        L[Teleport Bastion]
     end
 
     subgraph External Services
@@ -40,13 +38,16 @@ graph LR
         E --> |Metrics| G
         F --> |Logs| G
     end
-    
-    subgraph Security
-        H[Firewall]
-        I[SSH Hardening]
-        J[Binary Verify]
-        K[AppArmor MAC]
-        L[Teleport Bastion]
+
+    subgraph Validator Node
+        A[Polkadot Validator Node]
+        B[Node Exporter]
+        C[Grafana Agent]
+        D[Promtail]
+        M[Monit] --> |Monitor| C
+        M --> |Monitor| B
+        M --> |Monitor| D
+        M --> |Monitor| A
     end
 
     A --> |Metrics| C
