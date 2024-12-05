@@ -33,19 +33,22 @@ graph TD
             H[SSH Hardening]
             I[Binary Signature Verification]
             J[AppArmor MAC]
+            T[Teleport]
         end
 
         subgraph Monitoring Components
             B
             K[Node Exporter]
-            L[Promtail]
-            M[Monit]
+            L[Promtail] --> |Logs| D[Grafana]
+            M[Monit] --> |Monitor| B
+            M --> |Monitor| K
+            M --> |Monitor| L
         end
 
         A --> |Logs| L
         K --> |System Metrics| B
-        M --> |Service Status| B
         A --> |Service Management| N[Systemd]
+        T --> |Secure Access| A
     end
 
     G --> |Network Protection| A
@@ -56,6 +59,7 @@ graph TD
     J --> |MAC Policy| K
     J --> |MAC Policy| L
     J --> |MAC Policy| M
+    J --> |MAC Policy| T
 ```
 
 ## Services Interaction
@@ -66,8 +70,11 @@ graph LR
         A[Polkadot Service]
         B[Node Exporter]
         C[Grafana Agent]
-        D[Promtail]
-        E[Monit]
+        D[Promtail] --> |Logs| J[Grafana]
+        E[Monit] --> |Monitor| C
+        E --> |Monitor| B
+        E --> |Monitor| D
+        T[Teleport]
         
         subgraph Security Layer
             F[UFW]
@@ -76,16 +83,18 @@ graph LR
         end
     end
 
-    subgraph Monitoring Stack
+    subgraph External Services
         I[Prometheus] --> |Visualization| J[Grafana]
-        J --> |Alerts| K[Alert Manager]
+        I --> |Alerts| K[Alert Manager]
+        L[Teleport Auth Server]
     end
 
     A --> |Metrics| C
     B --> |System Metrics| C
     D --> |Logs| C
-    E --> |Service Status| C
     C --> |Push| I
+
+    T --> |Auth| L
 
     F --> |Protect| A
     G --> |MAC| A
@@ -93,6 +102,7 @@ graph LR
     G --> |MAC| C
     G --> |MAC| D
     G --> |MAC| E
+    G --> |MAC| T
     H --> |Access| A
 ```
 
@@ -163,6 +173,9 @@ apparmor:
       enabled: true
       enforce: true
     monit:
+      enabled: true
+      enforce: true
+    teleport:
       enabled: true
       enforce: true
 ```
@@ -240,6 +253,7 @@ pip install molecule molecule-docker ansible ansible-lint
 
 1. Install Ansible collections:
 ```bash
+source venv/bin/activate
 ansible-galaxy install -r requirements.yml
 ```
 

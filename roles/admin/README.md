@@ -217,8 +217,11 @@ graph TD
         A[Grafana Agent] --> |Push Metrics| B[Prometheus]
         B --> |Visualization| C[Grafana]
         D[Node Exporter] --> |System Metrics| A
-        E[Promtail] --> |Logs| A
-        F[Monit] --> |Service Status| A
+        E[Promtail] --> |Logs| C[Grafana]
+        F[Monit] --> |Monitor| A
+        F --> |Monitor| D
+        F --> |Monitor| E
+        T[Teleport] --> |Secure Access| S[Services]
     end
 
     subgraph Security
@@ -227,12 +230,18 @@ graph TD
         I[SSH Hardening]
     end
 
+    subgraph External
+        TA[Teleport Auth Server]
+    end
+
     G --> |Network Protection| A
     H --> |MAC Policy| A
     H --> |MAC Policy| D
     H --> |MAC Policy| E
     H --> |MAC Policy| F
+    H --> |MAC Policy| T
     I --> |Access Control| A
+    T --> |Auth| TA
 ```
 
 ## Services Interaction
@@ -242,8 +251,11 @@ graph LR
     subgraph Local Services
         A[Grafana Agent]
         B[Node Exporter]
-        C[Promtail]
-        D[Monit]
+        C[Promtail] --> |Logs| I[Grafana]
+        D[Monit] --> |Monitor| A
+        D --> |Monitor| B
+        D --> |Monitor| C
+        T[Teleport]
         
         subgraph Security Layer
             E[UFW]
@@ -256,20 +268,21 @@ graph LR
         H[Prometheus]
         I[Grafana]
         J[Alert Manager]
+        K[Teleport Auth Server]
     end
 
     B --> |System Metrics| A
-    C --> |Logs| A
-    D --> |Service Status| A
     A --> |Push| H
     H --> |Visualization| I
     I --> |Alerts| J
+    T --> |Auth| K
 
     E --> |Protect| A
     F --> |MAC| A
     F --> |MAC| B
     F --> |MAC| C
     F --> |MAC| D
+    F --> |MAC| T
     G --> |Access| A
 ```
 

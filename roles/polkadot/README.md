@@ -8,9 +8,11 @@ This role installs and configures a Polkadot validator node with security best p
 graph TD
     subgraph Polkadot Node
         A[Polkadot Validator] --> |Metrics| B[Grafana Agent]
-        A --> |Logs| C[Promtail]
+        A --> |Logs| C[Promtail] --> |Logs| K[Grafana]
         A --> |Service Management| D[Systemd]
-        E[Monit] --> |Service Status| B
+        E[Monit] --> |Monitor| B
+        E --> |Monitor| C
+        T[Teleport] --> |Secure Access| A
     end
 
     subgraph Security Layer
@@ -20,10 +22,11 @@ graph TD
         I[Binary Verification]
     end
 
-    subgraph Monitoring
+    subgraph External Services
         B --> |Push Metrics| J[Prometheus]
         J --> |Visualization| K[Grafana]
         K --> |Alerts| L[Alert Manager]
+        M[Teleport Auth Server]
     end
 
     F --> |Network Protection| A
@@ -31,8 +34,10 @@ graph TD
     G --> |MAC Policy| B
     G --> |MAC Policy| C
     G --> |MAC Policy| E
+    G --> |MAC Policy| T
     H --> |Access Control| A
     I --> |Binary Validation| A
+    T --> |Auth| M
 ```
 
 ## Services Interaction
@@ -42,9 +47,11 @@ graph LR
     subgraph Validator Node
         A[Polkadot Service]
         B[Grafana Agent]
-        C[Promtail]
-        D[Monit]
+        C[Promtail] --> |Logs| K[Grafana]
+        D[Monit] --> |Monitor| B
+        D --> |Monitor| C
         E[Systemd]
+        T[Teleport]
         
         subgraph Security
             F[UFW]
@@ -58,21 +65,22 @@ graph LR
         J[Prometheus]
         K[Grafana]
         L[Alert Manager]
+        M[Teleport Auth Server]
     end
 
     A --> |Metrics| B
     A --> |Logs| C
-    D --> |Service Status| B
-    E --> |Manage| A
     B --> |Push| J
     J --> |Visualization| K
     K --> |Alerts| L
+    T --> |Auth| M
 
     F --> |Protect| A
     G --> |MAC| A
     G --> |MAC| B
     G --> |MAC| C
     G --> |MAC| D
+    G --> |MAC| T
     H --> |Access| A
     I --> |Validate| A
 ```
