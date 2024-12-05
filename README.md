@@ -86,13 +86,13 @@ graph LR
     subgraph External Services
         I[Prometheus] --> |Metrics| J[Grafana]
         D --> |Logs| C
-        C --> |Logs| K[Loki]
+        C --> |Logs| J
         M[Teleport Bastion]
     end
 
     A --> |Metrics| C
-    B --> |System Metrics| C
-    C --> |Push| I
+    B --> |Metrics| C
+    C --> |Metrics| I
 
     T --> |Access| M
 

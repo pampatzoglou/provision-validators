@@ -226,8 +226,8 @@ graph TD
         D[Prometheus]
         E[Loki]
         F[Grafana]
-        D --> F
-        E --> F
+        D --> |Metrics| F
+        E --> |Logs| F
     end
     
     subgraph Security Layer

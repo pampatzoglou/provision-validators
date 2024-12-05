@@ -20,8 +20,8 @@ graph TD
         E[Prometheus]
         F[Loki]
         G[Grafana]
-        E --> G
-        F --> G
+        E --> |Metrics| G
+        F --> |Logs| G
     end
     
     subgraph Security
