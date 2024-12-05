@@ -22,28 +22,45 @@ This Ansible collection provides a comprehensive, secure, and automated solution
 ## Architecture
 
 ```mermaid
-graph TD
-    subgraph Validator Infrastructure
-        A[Polkadot Validator Node] --> |Metrics| B[Grafana Agent]
-        B --> |Metrics| C[Prometheus]
-        C --> |Visualization| D[Grafana]
-        A --> |Logging| E[Monitoring Stack]
-        A --> |Service Management| F[Systemd]
-        
-        subgraph Security Layer
-            G[UFW Firewall]
-            H[SSH Hardening]
-            I[Binary Signature Verification]
-            J[AppArmor MAC]
-        end
+graph LR
+    subgraph Security
+        H[Firewall]
+        I[SSH Hardening]
+        J[Binary Verify]
+        K[AppArmor MAC]
+        L[Teleport Bastion]
     end
 
-    E --> B
-    G --> A
-    H --> A
-    I --> A
-    J --> A
-    J --> B
+    subgraph External Services
+        E[Prometheus]
+        F[Loki]
+        G[Grafana]
+        E --> |Metrics| G
+        F --> |Logs| G
+    end
+
+    subgraph Validator Node
+        A[Polkadot Validator Node]
+        B[Node Exporter]
+        C[Grafana Agent]
+        D[Promtail]
+        M[Monit] --> |Monitor| C
+        M --> |Monitor| B
+        M --> |Monitor| D
+        M --> |Monitor| A
+    end
+
+    A --> |Metrics| C
+    B --> |Metrics| C
+    D --> |Logs| C
+    C --> |Metrics| E
+    C --> |Logs| F
+
+    H --> |Protect| A
+    I --> |Access| A
+    J --> |Validate| A
+    K --> |Secure| A
+    L --> |Access| A
 ```
 
 ## Services Interaction
@@ -53,15 +70,30 @@ graph LR
     subgraph Validator Node
         A[Polkadot Service]
         B[Node Exporter]
+        C[Grafana Agent]
+        D[Promtail]
+        E[Monit] --> |Monitor| C
+        E --> |Monitor| B
+        E --> |Monitor| D
+        T[Teleport]
     end
 
-    subgraph Monitoring Stack
-        C[Grafana Agent] --> |Metrics| D[Prometheus]
-        D --> |Visualization| E[Grafana]
+    subgraph External Services
+        I[Prometheus]
+        J[Grafana]
+        K[Loki]
+        I --> |Metrics| J
+        K --> |Logs| J
+        M[Teleport Bastion]
     end
 
-    A --> C
-    B --> C
+    A --> |Metrics| C
+    B --> |Metrics| C
+    D --> |Logs| C
+    C --> |Metrics| I
+    C --> |Logs| K
+
+    T --> |Access| M
 ```
 
 ## Security and Hardening Features
@@ -133,6 +165,9 @@ apparmor:
     monit:
       enabled: true
       enforce: true
+    teleport:
+      enabled: true
+      enforce: true
 ```
 
 ### OpsGenie Heartbeat Configuration
@@ -154,7 +189,7 @@ opsgenie:
 
 ### 🔒 Security
 - SSH hardening with best practices
-- Firewall configuration (UFW)
+- Firewall configuration 
 - Binary signature verification
 - Minimal privilege execution
 - Secure service configurations
@@ -208,6 +243,7 @@ pip install molecule molecule-docker ansible ansible-lint
 
 1. Install Ansible collections:
 ```bash
+source venv/bin/activate
 ansible-galaxy install -r requirements.yml
 ```
 

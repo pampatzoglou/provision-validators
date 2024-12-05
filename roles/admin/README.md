@@ -213,28 +213,82 @@ opsgenie:
 
 ```mermaid
 graph TD
-    A[Node Exporter] --> B[Grafana Agent]
-    C[Polkadot Validator] --> B
-    B --> D[Prometheus]
-    D --> E[Grafana]
+    subgraph Monitoring Node
+        A[Node Exporter]
+        B[Grafana Agent]
+        C[Promtail]
+        M[Monit] --> |Monitor| B
+        M --> |Monitor| A
+        M --> |Monitor| C
+    end
+
+    subgraph External Services
+        D[Prometheus]
+        E[Loki]
+        F[Grafana]
+        D --> |Metrics| F
+        E --> |Logs| F
+    end
+    
+    subgraph Security Layer
+        G[Firewall]
+        H[AppArmor]
+        I[SSH]
+        J[Teleport Bastion]
+    end
+
+    A --> |Metrics| B
+    C --> |Logs| B
+    B --> |Metrics| D
+    B --> |Logs| E
+
+    G --> |Protect| B
+    H --> |Secure| B
+    I --> |Access| B
+    J --> |Access| B
 ```
 
 ## Services Interaction
 
 ```mermaid
 graph LR
-    subgraph Monitoring Stack
-        A[Grafana Agent] --> |Metrics| B[Prometheus]
-        B --> |Visualization| C[Grafana]
+    subgraph Local Services
+        A[Grafana Agent]
+        B[Node Exporter]
+        C[Promtail]
+        D[Monit] --> |Monitor| A
+        D --> |Monitor| B
+        D --> |Monitor| C
+        T[Teleport]
+        
+        subgraph Security Layer
+            E[Firewall]
+            F[AppArmor]
+            G[SSH]
+        end
     end
 
-    subgraph Validator Node
-        D[Node Exporter]
-        E[Polkadot Validator]
+    subgraph Remote Services
+        H[Prometheus]
+        I[Grafana]
+        J[Loki]
+        K[Teleport Bastion]
     end
 
-    D --> A
-    E --> A
+    B --> |Metrics| A
+    C --> |Logs| A
+    A --> |Metrics| H
+    A --> |Logs| J
+    H --> |Metrics| I
+    T --> |Access| K
+
+    E --> |Protect| A
+    F --> |MAC| A
+    F --> |MAC| B
+    F --> |MAC| C
+    F --> |MAC| D
+    F --> |MAC| T
+    G --> |Access| A
 ```
 
 ## Dependencies

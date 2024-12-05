@@ -6,25 +6,130 @@ This role installs and configures a Polkadot validator node with security best p
 
 ```mermaid
 graph TD
-    A[Polkadot Validator] --> |Metrics| B[Grafana Agent]
-    B --> C[Prometheus]
-    C --> D[Grafana]
+    subgraph Validator Node
+        A[Polkadot Service]
+        B[Node Exporter]
+        C[Grafana Agent]
+        D[Promtail]
+        M[Monit] --> |Monitor| C
+        M --> |Monitor| B
+        M --> |Monitor| D
+    end
+
+    subgraph External Services
+        E[Prometheus]
+        F[Loki]
+        G[Grafana]
+        E --> |Metrics| G
+        F --> |Logs| G
+    end
+    
+    subgraph Security
+        H[Firewall]
+        I[AppArmor]
+        J[SSH]
+        K[Binary Verify]
+        L[Teleport Bastion]
+    end
+
+    A --> |Metrics| C
+    B --> |Metrics| C
+    D --> |Logs| C
+    C --> |Metrics| E
+    C --> |Logs| F
+
+    H --> |Protect| A
+    I --> |Secure| A
+    J --> |Access| A
+    K --> |Validate| A
+    L --> |Access| A
 ```
 
-## Services Interaction
+## Role Tasks Sequence
 
 ```mermaid
-graph LR
-    subgraph Monitoring Stack
-        A[Grafana Agent] --> |Metrics| B[Prometheus]
-        B --> |Visualization| C[Grafana]
+sequenceDiagram
+    participant Ansible
+    participant System
+    participant Service
+    participant Binary
+
+    Note over Ansible: Pre-tasks
+    Ansible->>System: Verify OS requirements
+    Ansible->>System: Create service user/group
+    Ansible->>System: Setup directories
+
+    Note over Ansible: Binary Management
+    Ansible->>Binary: Download binary
+    Ansible->>Binary: Verify signature
+    Ansible->>Binary: Install to path
+    
+    Note over Ansible: Service Configuration
+    Ansible->>System: Configure systemd unit
+    Ansible->>System: Setup AppArmor profile
+    Ansible->>System: Configure firewall rules
+    
+    Note over Ansible: Health Checks
+    Ansible->>Service: Check binary version
+    Ansible->>Service: Verify service status
+    Ansible->>Service: Check sync status
+    
+    Note over Ansible: Monitoring Setup
+    Ansible->>System: Configure metrics endpoint
+    Ansible->>System: Setup log rotation
+    Ansible->>System: Enable service monitoring
+```
+
+## Sync Process Sequence
+
+```mermaid
+sequenceDiagram
+    participant Ansible
+    participant System
+    participant Service
+    participant Snapshot
+    participant Database
+
+    Note over Ansible: Pre-Sync Preparation
+    Ansible->>Service: Stop Polkadot service
+    Ansible->>Database: Create backup of existing data
+    Database-->>Ansible: Backup completed
+
+    alt Snapshot Sync Enabled
+        Note over Ansible: Snapshot Download
+        Ansible->>Snapshot: Determine network snapshot
+        Snapshot-->>Ansible: Provide snapshot URL
+        Ansible->>System: Download snapshot
+        System-->>Ansible: Download complete
+
+        Note over Ansible: Snapshot Extraction
+        Ansible->>System: Uncompress snapshot
+        System->>Database: Extract to data directory
     end
 
-    subgraph Validator Node
-        D[Polkadot Validator]
+    Note over Ansible: Sync Type Validation
+    Ansible->>Ansible: Validate sync type
+    alt Invalid Sync Type
+        Ansible-->>Ansible: Fail with error
+    else Valid Sync Type
+        Note over Ansible: Sync Execution
+        Ansible->>Service: Execute sync
+        alt Sync Type: Warp
+            Service->>Service: Perform warp sync
+        else Sync Type: Fast
+            Service->>Service: Perform fast sync
+        else Sync Type: Full
+            Service->>Service: Perform full sync
+        end
+
+        Note over Ansible: Sync Logging
+        Ansible->>System: Log sync details
+        System-->>Ansible: Log created
     end
 
-    D --> A
+    Note over Ansible: Post-Sync
+    Ansible->>Service: Start Polkadot service
+    Service-->>Ansible: Service started
 ```
 
 ## New Features
@@ -41,7 +146,7 @@ graph LR
 
 - Secure systemd service configuration
 - Binary management with signature verification
-- UFW firewall configuration
+- Firewall configuration
 - Monit service monitoring
 - Dedicated system user and group
 - Directory structure management
@@ -188,7 +293,7 @@ Note: Lifecycle operations are mutually exclusive. When a lifecycle operation is
   * ProtectSystem=strict
   * ProtectHome=true
   * ReadWritePaths restrictions
-- UFW firewall with restrictive rules
+- Firewall with restrictive rules
 - Binary signature verification
 - AppArmor Mandatory Access Control:
   * Fine-grained resource access control
