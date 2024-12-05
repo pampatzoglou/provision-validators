@@ -1,1 +1,8 @@
 venv/
+# Ansible Vault files
+group_vars/*/vault.yml
+**/vault.yml
+!group_vars/*/vault.yml.example
+
+# Vault password file
+.vault_pass

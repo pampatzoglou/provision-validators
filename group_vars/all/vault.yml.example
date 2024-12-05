@@ -1,0 +1,24 @@
+---
+# Cloud Provider Credentials
+aws_access_key: your_aws_access_key
+aws_secret_key: your_aws_secret_key
+do_api_token: your_digitalocean_token
+
+# Infrastructure Management
+netbox_url: https://netbox.example.com
+netbox_token: your_netbox_token
+proxmox_url: https://proxmox.example.com:8006
+proxmox_user: root@pam
+proxmox_password: your_proxmox_password
+
+# Monitoring and Alerts
+opsgenie_api_key: your_opsgenie_api_key
+opsgenie_heartbeat_name: validator-heartbeat
+grafana_api_key: your_grafana_api_key
+
+# Other Sensitive Data
+ssh_private_keys:
+  validator: |
+    -----BEGIN OPENSSH PRIVATE KEY-----
+    Your SSH private key here
+    -----END OPENSSH PRIVATE KEY-----

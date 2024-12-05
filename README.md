@@ -125,6 +125,173 @@ graph LR
   - Multiple heartbeat endpoints
   - Flexible interval settings
 
+## Dynamic Inventory Configuration
+
+This project supports dynamic inventory for both AWS and DigitalOcean cloud providers.
+
+### Prerequisites
+
+1. Install required collections:
+```bash
+ansible-galaxy collection install -r requirements.yml
+```
+
+2. Configure cloud provider credentials:
+
+For AWS, set the following environment variables:
+```bash
+export AWS_ACCESS_KEY_ID='your_aws_access_key'
+export AWS_SECRET_ACCESS_KEY='your_aws_secret_key'
+```
+
+For DigitalOcean, set the API token:
+```bash
+export DO_API_TOKEN='your_digitalocean_api_token'
+```
+
+### Usage
+
+To list all hosts from a specific provider:
+
+```bash
+# List AWS hosts
+ansible-inventory -i inventory/aws_ec2.yml --list
+
+# List DigitalOcean hosts
+ansible-inventory -i inventory/digitalocean.yml --list
+```
+
+To use both providers in a playbook:
+
+```bash
+ansible-playbook -i inventory/aws_ec2.yml -i inventory/digitalocean.yml playbook.yaml
+```
+
+## Bare Metal Inventory
+
+The project supports multiple ways to manage bare metal hosts:
+
+1. **Static YAML Inventory**
+   - Define hosts in YAML files under `inventory/hosts/`
+   - Supports grouping and custom variables
+   - Example provided in `inventory/hosts/bare_metal_example.yml`
+
+2. **Netbox Integration**
+   - Automatically discover hosts from Netbox DCIM
+   - Groups hosts by device roles, sites, and racks
+   - Configure with environment variables:
+   ```bash
+   export NETBOX_URL='https://netbox.example.com'
+   export NETBOX_TOKEN='your_netbox_api_token'
+   ```
+
+3. **Proxmox Integration**
+   - Discover hosts from Proxmox clusters
+   - Includes both VMs and containers
+   - Configure with environment variables:
+   ```bash
+   export PROXMOX_URL='https://proxmox.example.com:8006'
+   export PROXMOX_USER='root@pam'
+   export PROXMOX_PASSWORD='your_proxmox_password'
+   ```
+
+To use bare metal inventory:
+
+```bash
+# List all bare metal hosts
+ansible-inventory -i inventory/bare_metal.yml --list
+
+# Use with specific groups
+ansible-playbook -i inventory/bare_metal.yml playbook.yaml --limit validators
+
+# Combine with cloud providers
+ansible-playbook -i inventory/aws_ec2.yml -i inventory/digitalocean.yml -i inventory/bare_metal.yml playbook.yaml
+```
+
+## Secure Credential Management with Ansible Vault
+
+This project uses Ansible Vault to securely manage sensitive credentials and API keys. All sensitive data is stored in encrypted vault files and never committed to version control.
+
+### Initial Setup
+
+1. Create your vault password file:
+```bash
+echo "your-secure-password" > .vault_pass
+chmod 600 .vault_pass
+```
+
+2. Copy the vault template and create your encrypted vault:
+```bash
+# Copy the template
+cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+
+# Encrypt the vault file
+ansible-vault encrypt group_vars/all/vault.yml --vault-password-file .vault_pass
+```
+
+3. Edit the vault to add your credentials:
+```bash
+# Edit the vault
+ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
+```
+
+### Vault Structure
+
+The vault file (`group_vars/all/vault.yml`) contains all sensitive credentials:
+
+```yaml
+# Cloud Provider Credentials
+aws_access_key: your_aws_access_key
+aws_secret_key: your_aws_secret_key
+do_api_token: your_digitalocean_token
+
+# Infrastructure Management
+netbox_url: https://netbox.example.com
+netbox_token: your_netbox_token
+proxmox_url: https://proxmox.example.com:8006
+proxmox_user: root@pam
+proxmox_password: your_proxmox_password
+
+# Monitoring and Alerts
+opsgenie_api_key: your_opsgenie_api_key
+opsgenie_heartbeat_name: validator-heartbeat
+grafana_api_key: your_grafana_api_key
+```
+
+### Using Vault with Playbooks
+
+1. Run playbooks with vault password:
+```bash
+ansible-playbook playbook.yaml --vault-password-file .vault_pass
+```
+
+2. Or add the vault password file location to ansible.cfg:
+```ini
+[defaults]
+vault_password_file = .vault_pass
+```
+
+### Best Practices
+
+1. Never commit the vault password file (.vault_pass)
+2. Never commit the actual vault file (vault.yml)
+3. Only commit the example vault file (vault.yml.example)
+4. Regularly rotate vault passwords and credentials
+5. Use different vault passwords for different environments
+
+### Viewing and Editing Vault Contents
+
+```bash
+# View vault contents
+ansible-vault view group_vars/all/vault.yml
+
+# Edit vault contents
+ansible-vault edit group_vars/all/vault.yml
+
+# Change vault password
+ansible-vault rekey group_vars/all/vault.yml
+```
+
 ## Quick Configuration Examples
 
 ### Hardening Configuration
