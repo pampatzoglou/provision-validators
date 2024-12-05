@@ -80,6 +80,58 @@ sequenceDiagram
     Ansible->>System: Enable service monitoring
 ```
 
+## Sync Process Sequence
+
+```mermaid
+sequenceDiagram
+    participant Ansible
+    participant System
+    participant Service
+    participant Snapshot
+    participant Database
+
+    Note over Ansible: Pre-Sync Preparation
+    Ansible->>Service: Stop Polkadot service
+    Ansible->>Database: Create backup of existing data
+    Database-->>Ansible: Backup completed
+
+    alt Snapshot Sync Enabled
+        Note over Ansible: Snapshot Download
+        Ansible->>Snapshot: Determine network snapshot
+        Snapshot-->>Ansible: Provide snapshot URL
+        Ansible->>System: Download snapshot
+        System-->>Ansible: Download complete
+
+        Note over Ansible: Snapshot Extraction
+        Ansible->>System: Uncompress snapshot
+        System->>Database: Extract to data directory
+    end
+
+    Note over Ansible: Sync Type Validation
+    Ansible->>Ansible: Validate sync type
+    alt Invalid Sync Type
+        Ansible-->>Ansible: Fail with error
+    else Valid Sync Type
+        Note over Ansible: Sync Execution
+        Ansible->>Service: Execute sync
+        alt Sync Type: Warp
+            Service->>Service: Perform warp sync
+        else Sync Type: Fast
+            Service->>Service: Perform fast sync
+        else Sync Type: Full
+            Service->>Service: Perform full sync
+        end
+
+        Note over Ansible: Sync Logging
+        Ansible->>System: Log sync details
+        System-->>Ansible: Log created
+    end
+
+    Note over Ansible: Post-Sync
+    Ansible->>Service: Start Polkadot service
+    Service-->>Ansible: Service started
+```
+
 ## New Features
 
 ### Lifecycle Management
