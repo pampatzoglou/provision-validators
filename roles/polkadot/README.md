@@ -45,41 +45,39 @@ graph TD
     L --> |Access| A
 ```
 
-## Validator Lifecycle Sequence
+## Role Tasks Sequence
 
 ```mermaid
 sequenceDiagram
-    participant Admin
-    participant Polkadot
-    participant Chain
+    participant Ansible
+    participant System
+    participant Service
+    participant Binary
 
-    Note over Polkadot: Initial Setup
-    Admin->>Polkadot: Configure validator
-    Admin->>Polkadot: Setup service account
-    Admin->>Polkadot: Configure storage
+    Note over Ansible: Pre-tasks
+    Ansible->>System: Verify OS requirements
+    Ansible->>System: Create service user/group
+    Ansible->>System: Setup directories
 
-    Note over Polkadot: Chain Sync
-    Polkadot->>Chain: Connect to network
-    Polkadot->>Chain: Download blocks
-    Polkadot->>Chain: Process state
-    Polkadot->>Chain: Verify chain
-
-    Note over Polkadot: Validator Setup
-    Admin->>Polkadot: Generate session keys
-    Polkadot->>Chain: Submit keys
-    Admin->>Chain: Bond tokens
-    Admin->>Chain: Submit validate intention
-
-    Note over Polkadot: Active Validation
-    Polkadot->>Chain: Participate in consensus
-    Polkadot->>Chain: Produce blocks
-    Polkadot->>Chain: Validate transactions
-
-    Note over Polkadot: Maintenance
-    Admin->>Polkadot: Rotate session keys
-    Admin->>Chain: Update validate parameters
-    Admin->>Polkadot: Apply updates
-    Admin->>Polkadot: Tune performance
+    Note over Ansible: Binary Management
+    Ansible->>Binary: Download binary
+    Ansible->>Binary: Verify signature
+    Ansible->>Binary: Install to path
+    
+    Note over Ansible: Service Configuration
+    Ansible->>System: Configure systemd unit
+    Ansible->>System: Setup AppArmor profile
+    Ansible->>System: Configure firewall rules
+    
+    Note over Ansible: Health Checks
+    Ansible->>Service: Check binary version
+    Ansible->>Service: Verify service status
+    Ansible->>Service: Check sync status
+    
+    Note over Ansible: Monitoring Setup
+    Ansible->>System: Configure metrics endpoint
+    Ansible->>System: Setup log rotation
+    Ansible->>System: Enable service monitoring
 ```
 
 ## New Features
