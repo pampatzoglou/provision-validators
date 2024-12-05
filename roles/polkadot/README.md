@@ -6,24 +6,43 @@ This role installs and configures a Polkadot validator node with security best p
 
 ```mermaid
 graph TD
-    A[Polkadot Service]
-    B[Grafana Agent] --> |Metrics| C[Prometheus]
-    D[Promtail] --> |Logs| B
-    B --> |Logs| E[Loki]
-    
-    subgraph Security
-        F[Firewall]
-        G[AppArmor]
-        H[SSH]
-        I[Binary Verify]
-        J[Teleport Bastion]
+    subgraph Validator Node
+        A[Polkadot Service]
+        B[Node Exporter]
+        C[Grafana Agent]
+        D[Promtail]
+        M[Monit] --> |Monitor| C
+        M --> |Monitor| B
+        M --> |Monitor| D
     end
 
-    F --> |Protect| A
-    G --> |Secure| A
-    H --> |Access| A
-    I --> |Validate| A
+    subgraph External Services
+        E[Prometheus]
+        F[Loki]
+        G[Grafana]
+        E --> G
+        F --> G
+    end
+    
+    subgraph Security
+        H[Firewall]
+        I[AppArmor]
+        J[SSH]
+        K[Binary Verify]
+        L[Teleport Bastion]
+    end
+
+    A --> |Metrics| C
+    B --> |Metrics| C
+    D --> |Logs| C
+    C --> |Metrics| E
+    C --> |Logs| F
+
+    H --> |Protect| A
+    I --> |Secure| A
     J --> |Access| A
+    K --> |Validate| A
+    L --> |Access| A
 ```
 
 ## Lifecycle Sequence Diagrams
@@ -93,6 +112,39 @@ sequenceDiagram
     GrafanaAgent->>Loki: Push logs
     Prometheus->>Grafana: Visualize metrics
     Loki->>Grafana: Display logs
+```
+
+## Validator Lifecycle Sequence
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant SystemD
+    participant Polkadot
+    participant Security
+
+    Admin->>SystemD: Deploy validator
+    Security->>Polkadot: Verify binary signature
+    SystemD->>Polkadot: Create service user
+    SystemD->>Polkadot: Configure service
+    Security->>Polkadot: Apply AppArmor profile
+    Security->>Polkadot: Configure firewall
+    SystemD->>Polkadot: Start service
+    
+    Note over Polkadot: Syncing Phase
+    Polkadot->>Polkadot: Download chain data
+    Polkadot->>Polkadot: Verify blocks
+    Polkadot->>Polkadot: Process state
+    
+    Note over Polkadot: Validation Phase
+    Polkadot->>Polkadot: Setup session keys
+    Polkadot->>Polkadot: Bond tokens
+    Polkadot->>Polkadot: Start validating
+    
+    Note over Polkadot: Maintenance
+    Admin->>Polkadot: Regular updates
+    Admin->>Polkadot: Key rotation
+    Admin->>Polkadot: Performance tuning
 ```
 
 ## New Features

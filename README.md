@@ -23,26 +23,43 @@ This Ansible collection provides a comprehensive, secure, and automated solution
 
 ```mermaid
 graph TD
-    A[Polkadot Validator Node] --> |Metrics| B[Grafana Agent]
-    B --> |Push Metrics| C[Prometheus]
-    C --> |Visualization| D[Grafana]
-    A --> |Logs| E[Promtail]
-    E --> |Logs| B
-    B --> |Logs| F[Loki]
-    
-    subgraph Security Layer
-        G[Firewall]
-        H[SSH Hardening]
-        I[Binary Signature Verification]
-        J[AppArmor MAC]
-        T[Teleport Bastion]
+    subgraph Validator Node
+        A[Polkadot Validator Node]
+        B[Node Exporter]
+        C[Grafana Agent]
+        D[Promtail]
+        M[Monit] --> |Monitor| C
+        M --> |Monitor| B
+        M --> |Monitor| D
     end
 
-    G --> |Protect| A
-    H --> |Access| A
-    I --> |Validate| A
-    J --> |Secure| A
-    T --> |Access| A
+    subgraph External Services
+        E[Prometheus]
+        F[Loki]
+        G[Grafana]
+        E --> G
+        F --> G
+    end
+    
+    subgraph Security Layer
+        H[Firewall]
+        I[SSH Hardening]
+        J[Binary Signature Verification]
+        K[AppArmor MAC]
+        L[Teleport Bastion]
+    end
+
+    A --> |Metrics| C
+    B --> |Metrics| C
+    D --> |Logs| C
+    C --> |Metrics| E
+    C --> |Logs| F
+
+    H --> |Protect| A
+    I --> |Access| A
+    J --> |Validate| A
+    K --> |Secure| A
+    L --> |Access| A
 ```
 
 ## Services Interaction
