@@ -47,7 +47,7 @@ graph LR
     subgraph Validator Node
         A[Polkadot Service]
         B[Grafana Agent]
-        C[Promtail] --> |Logs| K[Grafana]
+        C[Promtail]
         D[Monit] --> |Monitor| B
         D --> |Monitor| C
         E[Systemd]
@@ -62,18 +62,17 @@ graph LR
     end
 
     subgraph External Services
-        J[Prometheus]
-        K[Grafana]
-        L[Alert Manager]
-        M[Teleport Auth Server]
+        J[Prometheus] --> |Metrics| K[Grafana]
+        L[Loki] --> |Logs| K
+        K --> |Alerts| M[Alert Manager]
+        N[Teleport Auth Server]
     end
 
     A --> |Metrics| B
-    A --> |Logs| C
+    C --> |Logs| L
     B --> |Push| J
-    J --> |Visualization| K
-    K --> |Alerts| L
-    T --> |Auth| M
+
+    T --> |Auth| N
 
     F --> |Protect| A
     G --> |MAC| A

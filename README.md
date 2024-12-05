@@ -70,7 +70,7 @@ graph LR
         A[Polkadot Service]
         B[Node Exporter]
         C[Grafana Agent]
-        D[Promtail] --> |Logs| J[Grafana]
+        D[Promtail]
         E[Monit] --> |Monitor| C
         E --> |Monitor| B
         E --> |Monitor| D
@@ -84,17 +84,18 @@ graph LR
     end
 
     subgraph External Services
-        I[Prometheus] --> |Visualization| J[Grafana]
-        I --> |Alerts| K[Alert Manager]
-        L[Teleport Auth Server]
+        I[Prometheus] --> |Metrics| J[Grafana]
+        K[Loki] --> |Logs| J
+        J --> |Alerts| L[Alert Manager]
+        M[Teleport Auth Server]
     end
 
     A --> |Metrics| C
     B --> |System Metrics| C
-    D --> |Logs| C
+    D --> |Logs| K
     C --> |Push| I
 
-    T --> |Auth| L
+    T --> |Auth| M
 
     F --> |Protect| A
     G --> |MAC| A

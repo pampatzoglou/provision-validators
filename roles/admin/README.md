@@ -251,7 +251,7 @@ graph LR
     subgraph Local Services
         A[Grafana Agent]
         B[Node Exporter]
-        C[Promtail] --> |Logs| I[Grafana]
+        C[Promtail]
         D[Monit] --> |Monitor| A
         D --> |Monitor| B
         D --> |Monitor| C
@@ -267,15 +267,18 @@ graph LR
     subgraph Remote Services
         H[Prometheus]
         I[Grafana]
-        J[Alert Manager]
-        K[Teleport Auth Server]
+        J[Loki]
+        K[Alert Manager]
+        L[Teleport Auth Server]
     end
 
     B --> |System Metrics| A
+    C --> |Logs| J
     A --> |Push| H
-    H --> |Visualization| I
-    I --> |Alerts| J
-    T --> |Auth| K
+    H --> |Metrics| I
+    J --> |Logs| I
+    I --> |Alerts| K
+    T --> |Auth| L
 
     E --> |Protect| A
     F --> |MAC| A
