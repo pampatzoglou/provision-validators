@@ -275,10 +275,10 @@ graph LR
         K[Teleport Bastion]
     end
 
-    B --> |System Metrics| A
+    B --> |Metrics| A
     C --> |Logs| A
-    A --> |Push Metrics| H
-    A --> |Push Logs| J
+    A --> |Metrics| H
+    A --> |Logs| J
     H --> |Metrics| I
     T --> |Access| K
 
