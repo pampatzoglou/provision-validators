@@ -19,7 +19,7 @@
 
 - name: Template OpsGenie heartbeat scripts
   template:
-    src: opsgenie_heartbeat.py.j2
+    src: templates/opsgenie/opsgenie_heartbeat.py.j2
     dest: "/usr/local/bin/opsgenie/{{ item.name }}_heartbeat.py"
     mode: '0755'
   loop: "{{ opsgenie.heartbeats.heartbeats }}"
@@ -31,7 +31,7 @@
 
 - name: Create systemd service for OpsGenie heartbeats
   template:
-    src: opsgenie_heartbeat.service.j2
+    src: templates/opsgenie/opsgenie_heartbeat.service.j2
     dest: "/etc/systemd/system/opsgenie-{{ item.name }}-heartbeat.service"
     mode: '0644'
   loop: "{{ opsgenie.heartbeats.heartbeats }}"
@@ -43,7 +43,7 @@
 
 - name: Create systemd timer for OpsGenie heartbeats
   template:
-    src: opsgenie_heartbeat.timer.j2
+    src: templates/opsgenie/opsgenie_heartbeat.timer.j2
     dest: "/etc/systemd/system/opsgenie-{{ item.name }}-heartbeat.timer"
     mode: '0644'
   loop: "{{ opsgenie.heartbeats.heartbeats }}"

@@ -14,6 +14,14 @@ This role manages system administration tasks, monitoring, and secure access for
 - OpsGenie heartbeats for service health monitoring
 
 ### 🔒 Security Hardening
+#### AppArmor Service Protection
+- Mandatory Access Control (MAC) for all services
+- Fine-grained resource access control
+- Enforced security profiles for each service
+- Protection against privilege escalation
+- Network access control per service
+- File system access restrictions
+
 #### Shared Memory Protection
 - Secure mounting of `/dev/shm`
 - Prevents code execution in shared memory
@@ -66,6 +74,28 @@ opsgenie:
       - name: validator_status
         interval: 5
         enabled: true
+```
+
+#### AppArmor Configuration
+```yaml
+apparmor:
+  enabled: true  # Master switch for AppArmor
+  profiles:
+    grafana_agent:
+      enabled: true   # Enable profile for Grafana Agent
+      enforce: true   # Enforce mode (false for complain mode)
+    node_exporter:
+      enabled: true
+      enforce: true
+    promtail:
+      enabled: true
+      enforce: true
+    monit:
+      enabled: true
+      enforce: true
+    teleport:
+      enabled: true
+      enforce: true
 ```
 
 ## Requirements
@@ -172,6 +202,55 @@ opsgenie:
         enabled: true
 ```
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "Security Layer"
+        UFW[UFW Firewall]
+        AppArmor[AppArmor MAC]
+        Fail2ban[Fail2ban]
+    end
+
+    subgraph "Services"
+        GrafanaAgent[Grafana Agent]
+        NodeExporter[Node Exporter]
+        Promtail[Promtail]
+        Teleport[Teleport]
+        Monit[Monit]
+    end
+
+    subgraph "System Resources"
+        Files[File System]
+        Network[Network]
+        Memory[Memory]
+        Processes[Processes]
+    end
+
+    UFW --> Network
+    AppArmor --> GrafanaAgent
+    AppArmor --> NodeExporter
+    AppArmor --> Promtail
+    AppArmor --> Teleport
+    AppArmor --> Monit
+    
+    GrafanaAgent --> Files
+    GrafanaAgent --> Network
+    NodeExporter --> Files
+    NodeExporter --> Network
+    Promtail --> Files
+    Promtail --> Network
+    Teleport --> Network
+    Monit --> Processes
+    
+    Fail2ban --> Network
+```
+
+The architecture implements a defense-in-depth approach:
+1. **Network Security**: UFW firewall and Fail2ban protect against unauthorized access
+2. **Service Protection**: AppArmor provides mandatory access control for each service
+3. **Resource Control**: Fine-grained control over file system, network, and process access
+
 ## Dependencies
 
 Required Ansible collections:
@@ -213,6 +292,24 @@ Required Ansible collections:
               - name: validator_status
                 interval: 5
                 enabled: true
+        apparmor:
+          enabled: true
+          profiles:
+            grafana_agent:
+              enabled: true
+              enforce: true
+            node_exporter:
+              enabled: true
+              enforce: true
+            promtail:
+              enabled: true
+              enforce: true
+            monit:
+              enabled: true
+              enforce: true
+            teleport:
+              enabled: true
+              enforce: true
 ```
 
 ## Security Features
@@ -224,6 +321,7 @@ Required Ansible collections:
 - Systemd service hardening
 - Shared memory protection
 - SSH protection with Fail2ban
+- AppArmor service protection
 
 ## Monitoring Stack
 

@@ -87,6 +87,20 @@ hooks:
       command: "/usr/local/bin/notify_slack.sh"
       timeout: 60
 
+# AppArmor Configuration
+apparmor:
+  enabled: false  # Master switch for AppArmor profiles
+  profiles:
+    polkadot:
+      enabled: true
+      enforce: false  # false for complain mode, true for enforce mode
+    polkadot_execute_worker:
+      enabled: true
+      enforce: false
+    polkadot_prepare_worker:
+      enabled: true
+      enforce: false
+
 # Service configuration
 polkadot_service_enabled: true   # Set to false to disable the service
 polkadot_service_state: "started" # Can be: started, stopped, restarted

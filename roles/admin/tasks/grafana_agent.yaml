@@ -1,122 +1,144 @@
 ---
-- name: Create Grafana Agent group
-  group:
-    name: "{{ grafana_agent.group | default('grafana-agent') }}"
-    system: yes
-    state: present
+- name: Setup Grafana Agent User and Directories
+  block:
+    - name: Create Grafana Agent group
+      group:
+        name: "{{ grafana_agent.group | default('grafana-agent') }}"
+        system: yes
+        state: present
+
+    - name: Create Grafana Agent user
+      user:
+        name: "{{ grafana_agent.user | default('grafana-agent') }}"
+        group: "{{ grafana_agent.group | default('grafana-agent') }}"
+        system: yes
+        shell: /sbin/nologin
+        create_home: no
+        state: present
+
+    - name: Create Grafana Agent directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ grafana_agent.user | default('grafana-agent') }}"
+        group: "{{ grafana_agent.group | default('grafana-agent') }}"
+        mode: '0750'
+      loop:
+        - "{{ grafana_agent.config_dir | default('/etc/grafana-agent') }}"
+        - "{{ grafana_agent.data_dir | default('/var/lib/grafana-agent') }}"
   become: true
-  tags: ['grafana_agent']
+  tags: ['grafana_agent', 'setup']
 
-- name: Create Grafana Agent user
-  user:
-    name: "{{ grafana_agent.user | default('grafana-agent') }}"
-    group: "{{ grafana_agent.group | default('grafana-agent') }}"
-    system: yes
-    shell: /sbin/nologin
-    create_home: no
-    state: present
+- name: Install Grafana Agent Binary
+  block:
+    - name: Set Grafana Agent version
+      set_fact:
+        grafana_agent_version: "{{ grafana_agent.version | default('0.43.4') }}"
+
+    - name: Download Grafana Agent binary
+      get_url:
+        url: "https://github.com/grafana/agent/releases/download/v{{ grafana_agent_version }}/grafana-agent-linux-amd64.zip"
+        dest: "/tmp/grafana-agent-linux-amd64.zip"
+        mode: '0644'
+      register: agent_download
+
+    - name: Download SHA256SUMS
+      get_url:
+        url: "https://github.com/grafana/agent/releases/download/v{{ grafana_agent_version }}/SHA256SUMS"
+        dest: "/tmp/grafana-agent-SHA256SUMS"
+        mode: '0644'
+
+    - name: Verify Grafana Agent binary checksum
+      shell: |
+        cd /tmp
+        grep "grafana-agent-linux-amd64.zip" grafana-agent-SHA256SUMS | sha256sum -c
+      changed_when: false
+
+    - name: Extract Grafana Agent binary
+      unarchive:
+        src: "/tmp/grafana-agent-linux-amd64.zip"
+        dest: "/tmp"
+        remote_src: yes
+
+    - name: Install Grafana Agent binary
+      copy:
+        src: "/tmp/grafana-agent-linux-amd64"
+        dest: "{{ grafana_agent.install_dir | default('/usr/local/bin') }}/grafana-agent"
+        mode: '0755'
+        remote_src: yes
+        owner: "{{ grafana_agent.user | default('grafana-agent') }}"
+        group: "{{ grafana_agent.group | default('grafana-agent') }}"
+      notify: restart grafana-agent
+
+    - name: Clean up temporary files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/tmp/grafana-agent-linux-amd64.zip"
+        - "/tmp/grafana-agent-linux-amd64"
+        - "/tmp/grafana-agent-SHA256SUMS"
   become: true
-  tags: ['grafana_agent']
+  tags: ['grafana_agent', 'install']
 
-- name: Create Grafana Agent directories
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: "{{ grafana_agent.user | default('grafana-agent') }}"
-    group: "{{ grafana_agent.group | default('grafana-agent') }}"
-    mode: '0750'
-  loop:
-    - "{{ grafana_agent.config_dir | default('/etc/grafana-agent') }}"
-    - "{{ grafana_agent.data_dir | default('/var/lib/grafana-agent') }}"
+- name: Configure Grafana Agent Service
+  block:
+    - name: Template Grafana Agent configuration
+      template:
+        src: templates/grafana-agent/grafana_agent.yaml.j2
+        dest: "{{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml"
+        owner: "{{ grafana_agent.user | default('grafana-agent') }}"
+        group: "{{ grafana_agent.group | default('grafana-agent') }}"
+        mode: '0640'
+      notify: restart grafana-agent
+
+    - name: Template Grafana Agent systemd service
+      template:
+        src: templates/grafana-agent/grafana_agent.service.j2
+        dest: /etc/systemd/system/grafana-agent.service
+        mode: '0644'
+      notify:
+        - reload systemd
+        - restart grafana-agent
+      when: not ansible_connection == 'docker'
+
+    - name: Enable and start Grafana Agent service
+      systemd:
+        name: grafana-agent
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      when: grafana_agent.enabled | default(false) | bool and not ansible_connection == 'docker'
   become: true
-  tags: ['grafana_agent']
+  tags: ['grafana_agent', 'service']
 
-- name: Set Grafana Agent version
-  set_fact:
-    grafana_agent_version: "{{ grafana_agent.version | default('0.43.4') }}"
-  tags: ['grafana_agent']
+- name: Configure AppArmor for Grafana Agent
+  block:
+    - name: Check if AppArmor is installed
+      stat:
+        path: /sbin/apparmor_parser
+      register: apparmor_installed
 
-- name: Download Grafana Agent binary
-  get_url:
-    url: "https://github.com/grafana/agent/releases/download/v{{ grafana_agent_version }}/grafana-agent-linux-amd64.zip"
-    dest: "/tmp/grafana-agent-linux-amd64.zip"
-    mode: '0644'
-  register: agent_download
-  tags: ['grafana_agent']
+    - name: Install AppArmor profile for Grafana Agent
+      template:
+        src: templates/grafana-agent/grafana_agent.apparmor.j2
+        dest: /etc/apparmor.d/usr.local.bin.grafana-agent
+        mode: '0644'
+      notify: reload apparmor
+      when: 
+        - apparmor_installed.stat.exists
+        - grafana_agent.apparmor.enabled | bool
 
-- name: Download SHA256SUMS
-  get_url:
-    url: "https://github.com/grafana/agent/releases/download/v{{ grafana_agent_version }}/SHA256SUMS"
-    dest: "/tmp/grafana-agent-SHA256SUMS"
-    mode: '0644'
-  tags: ['grafana_agent']
-
-- name: Verify Grafana Agent binary checksum
-  shell: |
-    cd /tmp
-    grep "grafana-agent-linux-amd64.zip" grafana-agent-SHA256SUMS | sha256sum -c
-  changed_when: false
-  tags: ['grafana_agent']
-
-- name: Extract Grafana Agent binary
-  unarchive:
-    src: "/tmp/grafana-agent-linux-amd64.zip"
-    dest: "/tmp"
-    remote_src: yes
-  tags: ['grafana_agent']
-
-- name: Install Grafana Agent binary
-  copy:
-    src: "/tmp/grafana-agent-linux-amd64"
-    dest: "{{ grafana_agent.install_dir | default('/usr/local/bin') }}/grafana-agent"
-    mode: '0755'
-    remote_src: yes
-    owner: "{{ grafana_agent.user | default('grafana-agent') }}"
-    group: "{{ grafana_agent.group | default('grafana-agent') }}"
+    - name: Enable AppArmor profile for Grafana Agent
+      command: "{{ (grafana_agent.apparmor.enforce | bool) | ternary('aa-enforce', 'aa-complain') }} usr.local.bin.grafana-agent"
+      args:
+        creates: "/etc/apparmor.d/{{ (grafana_agent.apparmor.enforce | bool) | ternary('force-complain','force-enforce') }}/usr.local.bin.grafana-agent"
+      when: 
+        - apparmor_installed.stat.exists
+        - grafana_agent.apparmor.enabled | bool
+      notify: restart grafana-agent
   become: true
-  notify: restart grafana-agent
-  tags: ['grafana_agent']
-
-- name: Template Grafana Agent configuration
-  template:
-    src: grafana_agent.yaml.j2
-    dest: "{{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml"
-    owner: "{{ grafana_agent.user | default('grafana-agent') }}"
-    group: "{{ grafana_agent.group | default('grafana-agent') }}"
-    mode: '0640'
-  become: true
-  notify: restart grafana-agent
-  tags: ['grafana_agent']
-
-- name: Template Grafana Agent systemd service
-  template:
-    src: grafana_agent.service.j2
-    dest: /etc/systemd/system/grafana-agent.service
-    mode: '0644'
-  become: true
-  notify:
-    - reload systemd
-    - restart grafana-agent
-  when: not ansible_connection == 'docker'
-  tags: ['grafana_agent']
-
-- name: Enable and start Grafana Agent service
-  systemd:
-    name: grafana-agent
-    state: started
-    enabled: yes
-    daemon_reload: yes
-  become: true
-  when: grafana_agent.enabled | default(false) | bool and not ansible_connection == 'docker'
-  tags: ['grafana_agent']
-
-- name: Clean up temporary files
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "/tmp/grafana-agent-linux-amd64.zip"
-    - "/tmp/grafana-agent-linux-amd64"
-    - "/tmp/grafana-agent-SHA256SUMS"
-    - "/tmp/grafana-agent-checksum"
-  tags: ['grafana_agent']
+  when:
+    - ansible_os_family == "Debian"
+    - ansible_distribution_major_version | int >= 10
+  tags: ['grafana_agent', 'security', 'apparmor']

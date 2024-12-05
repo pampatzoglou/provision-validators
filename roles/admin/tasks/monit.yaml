@@ -19,7 +19,7 @@
 
 - name: Template monit main configuration
   template:
-    src: monit.conf.j2
+    src: templates/monit/monit.conf.j2
     dest: "{{ monit.config_dir | default('/etc/monit') }}/{{ monit.config_file | default('monitrc') }}"
     mode: '0600'
   become: true

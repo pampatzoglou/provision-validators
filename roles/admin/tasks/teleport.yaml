@@ -50,7 +50,7 @@
 
 - name: Template Teleport configuration
   template:
-    src: teleport.yaml.j2
+    src: templates/teleport/teleport.yaml.j2
     dest: "{{ teleport.config_dir }}/teleport.yaml"
     owner: "{{ teleport.user | default('teleport') }}"
     group: "{{ teleport.group | default('teleport') }}"
@@ -59,7 +59,7 @@
 
 - name: Template Teleport systemd service
   template:
-    src: teleport.service.j2
+    src: templates/teleport/teleport.service.j2
     dest: /etc/systemd/system/teleport.service
     mode: '0644'
   notify: restart teleport

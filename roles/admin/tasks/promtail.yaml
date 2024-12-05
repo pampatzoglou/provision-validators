@@ -67,7 +67,7 @@
 
 - name: Template promtail configuration
   template:
-    src: promtail.yaml.j2
+    src: templates/promtail/promtail.yaml.j2
     dest: "{{ promtail.config_dir }}/config.yaml"
     owner: "{{ promtail.user }}"
     group: "{{ promtail.group }}"
@@ -76,7 +76,7 @@
 
 - name: Template promtail systemd service
   template:
-    src: promtail.service.j2
+    src: templates/promtail/promtail.service.j2
     dest: /etc/systemd/system/promtail.service
     mode: '0644'
   notify: restart promtail

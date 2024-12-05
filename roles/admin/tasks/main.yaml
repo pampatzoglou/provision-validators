@@ -4,34 +4,40 @@
   include_tasks: ufw.yaml
   when: ansible_os_family == "Debian"
 
-- name: Include Grafana Agent tasks
-  include_tasks: grafana_agent.yaml
-  when: grafana_agent is defined and grafana_agent.enabled | default(false) | bool
-
-- name: Include Node exporter
-  include_tasks: node_exporter.yaml
-  when: node_exporter is defined and node_exporter.enabled | default(false) | bool
-
-- name: Include promtail
-  include_tasks: promtail.yaml
-  when: promtail is defined and promtail.enabled | default(false) | bool
-
-- name: Include Monit tasks
-  include_tasks: monit.yaml
-  when: monit is defined and monit.enabled | default(false) | bool
-
-- name: Include Teleport tasks
-  include_tasks: teleport.yaml
-  when: teleport is defined and teleport.enabled | default(false) | bool
-
 - name: Include SSH hardening
   include_tasks: ssh_hardening.yaml
+  tags: ['hardening']
 
 - name: Include Hardening tasks
   include_tasks: hardening.yaml
   tags: ['hardening']
 
+- name: Include Grafana Agent tasks
+  include_tasks: grafana_agent.yaml
+  when: grafana_agent is defined and grafana_agent.enabled | default(false) | bool
+  tags: ['monitoring', 'grafana_agent']
+
+- name: Include Node exporter
+  include_tasks: node_exporter.yaml
+  when: node_exporter is defined and node_exporter.enabled | default(false) | bool
+  tags: ['monitoring', 'node_exporter']
+
+- name: Include promtail
+  include_tasks: promtail.yaml
+  when: promtail is defined and promtail.enabled | default(false) | bool
+  tags: ['monitoring', 'promtail']
+
+- name: Include Monit tasks
+  include_tasks: monit.yaml
+  when: monit is defined and monit.enabled | default(false) | bool
+  tags: ['monitoring', 'monit']
+
 - name: Include OpsGenie Heartbeat tasks
   include_tasks: opsgenie.yaml
   when: opsgenie.heartbeats.enabled | default(false) | bool
-  tags: ['opsgenie']
+  tags: ['monitoring', 'opsgenie']
+
+- name: Include Teleport tasks
+  include_tasks: teleport.yaml
+  when: teleport is defined and teleport.enabled | default(false) | bool
+  tags: ['hardening', 'teleport']

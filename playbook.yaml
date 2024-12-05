@@ -17,3 +17,29 @@
       tags: ['admin', 'security', 'monitoring']
     - role: polkadot
       tags: ['polkadot']
+
+  # tasks:
+  # - name: Install AppArmor
+  #   apt:
+  #     name: apparmor
+  #     state: present
+  #   tags: ['apparmor']
+
+  # - name: Enable AppArmor service
+  #   service:
+  #     name: apparmor
+  #     state: started
+  #     enabled: true
+  #   tags: ['apparmor']
+
+  # - name: Apply AppArmor profile
+  #   copy:
+  #     src: files/my_apparmor_profile
+  #     dest: /etc/apparmor.d/my_apparmor_profile
+  #   notify: Reload AppArmor
+  #   tags: ['apparmor']
+
+  # handlers:
+  # - name: Reload AppArmor
+  #   command: apparmor_parser -r /etc/apparmor.d/my_apparmor_profile
+  #   tags: ['apparmor']

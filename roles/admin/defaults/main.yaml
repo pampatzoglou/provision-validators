@@ -25,6 +25,9 @@ grafana_agent:
         - targets: ["localhost:9100"]
       metrics_path: "/metrics"
       scrape_interval: "15s"
+  apparmor:
+    enabled: "{{ apparmor.enabled and apparmor.profiles.grafana_agent.enabled }}"
+    enforce: "{{ apparmor.profiles.grafana_agent.enforce }}"
 
 # Node Exporter Configuration
 node_exporter:
@@ -38,6 +41,9 @@ node_exporter:
     - "--collector.systemd"
     - "--collector.processes"
     - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run)($|/)"
+  apparmor:
+    enabled: "{{ apparmor.enabled and apparmor.profiles.node_exporter.enabled }}"
+    enforce: "{{ apparmor.profiles.node_exporter.enforce }}"
 
 # Promtail Configuration
 promtail:
@@ -69,6 +75,9 @@ promtail:
             __path__: 
               - /var/log/syslog
               - /var/log/auth.log
+  apparmor:
+    enabled: "{{ apparmor.enabled and apparmor.profiles.promtail.enabled }}"
+    enforce: "{{ apparmor.profiles.promtail.enforce }}"
 
 # Monit Configuration
 monit:
@@ -88,6 +97,9 @@ monit:
   mail_password: ""
   mail_encryption: ""
   mail_timeout: 30
+  apparmor:
+    enabled: "{{ apparmor.enabled and apparmor.profiles.monit.enabled }}"
+    enforce: "{{ apparmor.profiles.monit.enforce }}"
 
 # Teleport Configuration
 teleport:
@@ -115,6 +127,9 @@ teleport:
     enabled: false
   kubernetes_service:
     enabled: false
+  apparmor:
+    enabled: "{{ apparmor.enabled and apparmor.profiles.teleport.enabled }}"
+    enforce: "{{ apparmor.profiles.teleport.enforce }}"
 
 # UFW Configuration
 ufw:
@@ -127,6 +142,29 @@ ufw:
     - { port: 9100, proto: "tcp", rule: "allow" }  # Node Exporter
     - { port: 9080, proto: "tcp", rule: "allow" }  # Promtail
     - { port: 2812, proto: "tcp", rule: "allow" }  # Monit
+
+# AppArmor Configuration
+apparmor:
+  enabled: true  # Master switch for AppArmor
+  profiles:
+    grafana_agent:
+      enabled: true
+      enforce: true
+    node_exporter:
+      enabled: true
+      enforce: true
+    promtail:
+      enabled: true
+      enforce: true
+    monit:
+      enabled: true
+      enforce: true
+    teleport:
+      enabled: true
+      enforce: true
+    fail2ban:
+      enabled: true
+      enforce: true
 
 # Hardening Configurations
 hardening:
@@ -148,6 +186,9 @@ hardening:
         enabled: true
       - name: ssh
         enabled: true
+    apparmor:
+      enabled: "{{ apparmor.enabled and apparmor.profiles.fail2ban.enabled }}"
+      enforce: "{{ apparmor.profiles.fail2ban.enforce }}"
 
 # OpsGenie Heartbeat Configuration
 opsgenie:

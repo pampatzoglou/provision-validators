@@ -17,6 +17,7 @@ graph TD
             D[UFW Firewall]
             E[SSH Hardening]
             F[Binary Signature Verification]
+            M[AppArmor MAC]
         end
         
         subgraph Monitoring Components
@@ -37,6 +38,11 @@ graph TD
     D --> A
     E --> A
     F --> A
+    M --> A
+    M --> H
+    M --> I
+    M --> J
+    M --> K
 ```
 
 ## Services Interaction
@@ -60,6 +66,7 @@ graph LR
     subgraph Security
         I[SSH Hardening]
         J[Binary Verification]
+        K[AppArmor MAC]
     end
 
     A -->|Exposes Metrics| D
@@ -71,6 +78,11 @@ graph LR
     B -->|Controls| A
 
     C -->|Restricts Access| A
+    K -->|Enforces MAC| A
+    K -->|Protects| E
+    K -->|Protects| F
+    K -->|Protects| G
+    K -->|Protects| H
 
     D -->|Scrapes Metrics| E
     D -->|Collects System Metrics| F
@@ -93,6 +105,13 @@ graph LR
   - Configurable brute-force attack mitigation
   - Customizable ban times and retry attempts
   - Multi-service support (SSH)
+
+- **AppArmor Service Protection**
+  - Mandatory Access Control (MAC) for all services
+  - Fine-grained resource access control
+  - Enforced security profiles
+  - Protection against privilege escalation
+  - Network and file system access restrictions
 
 ### Monitoring and Alerting
 - Comprehensive system monitoring
@@ -126,6 +145,25 @@ hardening:
         enabled: true
 ```
 
+### AppArmor Configuration
+```yaml
+apparmor:
+  enabled: true  # Master switch for AppArmor
+  profiles:
+    grafana_agent:
+      enabled: true   # Enable profile for Grafana Agent
+      enforce: true   # Enforce mode (false for complain mode)
+    node_exporter:
+      enabled: true
+      enforce: true
+    promtail:
+      enabled: true
+      enforce: true
+    monit:
+      enabled: true
+      enforce: true
+```
+
 ### OpsGenie Heartbeat Configuration
 ```yaml
 opsgenie:
@@ -149,6 +187,8 @@ opsgenie:
 - Binary signature verification
 - Minimal privilege execution
 - Secure service configurations
+- AppArmor Mandatory Access Control
+- Service-specific security profiles
 
 ### 🖥️ Monitoring
 - Prometheus metrics collection
@@ -183,8 +223,18 @@ opsgenie:
 - Ansible 2.9+
 - Ubuntu 20.04/22.04 LTS
 - Python 3.8+
+- pip3
+- virtualenv
+- git
 
 ## Installation
+
+### Setup virtual environment and install dependencies
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install molecule molecule-docker ansible ansible-lint
+```
 
 1. Install Ansible collections:
 ```bash
@@ -214,6 +264,12 @@ Uses Molecule for automated testing:
 - Periodic security audits
 - Minimal exposed ports
 - Strict authentication mechanisms
+
+## Usage
+```bash
+source venv/bin/activate
+ansible-playbook --ask-become-pass -e user=$USER playbook.yaml
+```
 
 ## Contributing
 
