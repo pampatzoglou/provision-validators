@@ -45,106 +45,41 @@ graph TD
     L --> |Access| A
 ```
 
-## Lifecycle Sequence Diagrams
-
-### Validator Deployment Sequence
-
-```mermaid
-sequenceDiagram
-    participant Admin
-    participant SystemD
-    participant Polkadot
-    participant Monitoring
-    participant Security
-
-    Admin->>SystemD: Initiate deployment
-    SystemD->>Polkadot: Create service user
-    SystemD->>Polkadot: Set up directories
-    Security->>Polkadot: Apply AppArmor profile
-    Security->>Polkadot: Configure Firewall rules
-    Polkadot->>Monitoring: Enable metrics endpoint
-    Monitoring->>Polkadot: Configure Grafana Agent
-    Monitoring->>Polkadot: Set up Promtail logging
-    SystemD->>Polkadot: Start validator service
-    SystemD->>Monitoring: Enable monitoring services
-```
-
-### Validator Lifecycle Management
-
-```mermaid
-sequenceDiagram
-    participant Admin
-    participant SystemD
-    participant Polkadot
-    participant Monitoring
-    participant Security
-
-    Admin->>SystemD: Request service action
-    alt Service Upgrade
-        SystemD->>Polkadot: Stop current service
-        Security->>Polkadot: Verify binary signature
-        SystemD->>Polkadot: Update binary
-        SystemD->>Polkadot: Restart service
-    else Service Restart
-        SystemD->>Polkadot: Restart service
-    else Service Stop
-        SystemD->>Polkadot: Stop service
-        Monitoring->>Polkadot: Collect final metrics
-    end
-
-    Monitoring->>Polkadot: Log lifecycle events
-    Security->>Monitoring: Record security events
-```
-
-### Validator Monitoring and Alerting
-
-```mermaid
-sequenceDiagram
-    participant Polkadot
-    participant GrafanaAgent
-    participant Prometheus
-    participant Loki
-    participant Grafana
-
-    Polkadot->>GrafanaAgent: Send metrics
-    Polkadot->>GrafanaAgent: Send logs
-    GrafanaAgent->>Prometheus: Push metrics
-    GrafanaAgent->>Loki: Push logs
-    Prometheus->>Grafana: Visualize metrics
-    Loki->>Grafana: Display logs
-```
-
 ## Validator Lifecycle Sequence
 
 ```mermaid
 sequenceDiagram
     participant Admin
-    participant SystemD
     participant Polkadot
-    participant Security
+    participant Chain
 
-    Admin->>SystemD: Deploy validator
-    Security->>Polkadot: Verify binary signature
-    SystemD->>Polkadot: Create service user
-    SystemD->>Polkadot: Configure service
-    Security->>Polkadot: Apply AppArmor profile
-    Security->>Polkadot: Configure firewall
-    SystemD->>Polkadot: Start service
-    
-    Note over Polkadot: Syncing Phase
-    Polkadot->>Polkadot: Download chain data
-    Polkadot->>Polkadot: Verify blocks
-    Polkadot->>Polkadot: Process state
-    
-    Note over Polkadot: Validation Phase
-    Polkadot->>Polkadot: Setup session keys
-    Polkadot->>Polkadot: Bond tokens
-    Polkadot->>Polkadot: Start validating
-    
+    Note over Polkadot: Initial Setup
+    Admin->>Polkadot: Configure validator
+    Admin->>Polkadot: Setup service account
+    Admin->>Polkadot: Configure storage
+
+    Note over Polkadot: Chain Sync
+    Polkadot->>Chain: Connect to network
+    Polkadot->>Chain: Download blocks
+    Polkadot->>Chain: Process state
+    Polkadot->>Chain: Verify chain
+
+    Note over Polkadot: Validator Setup
+    Admin->>Polkadot: Generate session keys
+    Polkadot->>Chain: Submit keys
+    Admin->>Chain: Bond tokens
+    Admin->>Chain: Submit validate intention
+
+    Note over Polkadot: Active Validation
+    Polkadot->>Chain: Participate in consensus
+    Polkadot->>Chain: Produce blocks
+    Polkadot->>Chain: Validate transactions
+
     Note over Polkadot: Maintenance
-    Admin->>Polkadot: Regular updates
-    Admin->>Polkadot: Key rotation
-    Admin->>Polkadot: Performance tuning
+    Admin->>Polkadot: Rotate session keys
+    Admin->>Chain: Update validate parameters
+    Admin->>Polkadot: Apply updates
+    Admin->>Polkadot: Tune performance
 ```
 
 ## New Features
