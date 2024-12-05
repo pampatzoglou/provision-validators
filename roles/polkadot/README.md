@@ -16,7 +16,7 @@ graph TD
     end
 
     subgraph Security Layer
-        F[UFW Firewall]
+        F[Firewall]
         G[AppArmor]
         H[SSH Hardening]
         I[Binary Verification]
@@ -54,7 +54,7 @@ graph LR
         T[Teleport]
         
         subgraph Security
-            F[UFW]
+            F[Firewall]
             G[AppArmor]
             H[SSH]
             I[Binary Verify]
@@ -63,16 +63,15 @@ graph LR
 
     subgraph External Services
         J[Prometheus] --> |Metrics| K[Grafana]
-        L[Loki] --> |Logs| K
-        K --> |Alerts| M[Alert Manager]
-        N[Teleport Auth Server]
+        C --> |Logs| B
+        B --> |Logs| L[Loki]
+        M[Teleport Bastion]
     end
 
     A --> |Metrics| B
-    C --> |Logs| L
     B --> |Push| J
 
-    T --> |Auth| N
+    T --> |Access| M
 
     F --> |Protect| A
     G --> |MAC| A
@@ -98,7 +97,7 @@ graph LR
 
 - Secure systemd service configuration
 - Binary management with signature verification
-- UFW firewall configuration
+- Firewall configuration
 - Monit service monitoring
 - Dedicated system user and group
 - Directory structure management
@@ -245,7 +244,7 @@ Note: Lifecycle operations are mutually exclusive. When a lifecycle operation is
   * ProtectSystem=strict
   * ProtectHome=true
   * ReadWritePaths restrictions
-- UFW firewall with restrictive rules
+- Firewall with restrictive rules
 - Binary signature verification
 - AppArmor Mandatory Access Control:
   * Fine-grained resource access control

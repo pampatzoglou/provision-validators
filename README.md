@@ -29,7 +29,7 @@ graph TD
         C --> |Visualization| D[Grafana]
         
         subgraph Security Layer
-            G[UFW Firewall]
+            G[Firewall]
             H[SSH Hardening]
             I[Binary Signature Verification]
             J[AppArmor MAC]
@@ -77,7 +77,7 @@ graph LR
         T[Teleport]
         
         subgraph Security Layer
-            F[UFW]
+            F[Firewall]
             G[AppArmor]
             H[SSH]
         end
@@ -85,17 +85,16 @@ graph LR
 
     subgraph External Services
         I[Prometheus] --> |Metrics| J[Grafana]
-        K[Loki] --> |Logs| J
-        J --> |Alerts| L[Alert Manager]
-        M[Teleport Auth Server]
+        D --> |Logs| C
+        C --> |Logs| K[Loki]
+        M[Teleport Bastion]
     end
 
     A --> |Metrics| C
     B --> |System Metrics| C
-    D --> |Logs| K
     C --> |Push| I
 
-    T --> |Auth| M
+    T --> |Access| M
 
     F --> |Protect| A
     G --> |MAC| A
@@ -200,7 +199,7 @@ opsgenie:
 
 ### 🔒 Security
 - SSH hardening with best practices
-- Firewall configuration (UFW)
+- Firewall configuration 
 - Binary signature verification
 - Minimal privilege execution
 - Secure service configurations

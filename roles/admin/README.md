@@ -258,7 +258,7 @@ graph LR
         T[Teleport]
         
         subgraph Security Layer
-            E[UFW]
+            E[Firewall]
             F[AppArmor]
             G[SSH]
         end
@@ -268,17 +268,15 @@ graph LR
         H[Prometheus]
         I[Grafana]
         J[Loki]
-        K[Alert Manager]
-        L[Teleport Auth Server]
+        K[Teleport Bastion]
     end
 
     B --> |System Metrics| A
-    C --> |Logs| J
-    A --> |Push| H
+    C --> |Logs| A
+    A --> |Push Metrics| H
+    A --> |Push Logs| J
     H --> |Metrics| I
-    J --> |Logs| I
-    I --> |Alerts| K
-    T --> |Auth| L
+    T --> |Access| K
 
     E --> |Protect| A
     F --> |MAC| A
