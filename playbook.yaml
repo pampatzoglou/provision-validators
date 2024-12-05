@@ -5,12 +5,19 @@
   gather_facts: true
 
   pre_tasks:
-  - name: Update apt cache
+  - name: Update apt cache (Debian)
     apt:
       update_cache: yes
       cache_valid_time: 3600
     tags: always
     when: ansible_os_family == "Debian"
+
+  - name: Update dnf cache (RedHat)
+    dnf:
+      update_cache: yes
+      cache_valid_time: 3600
+    tags: always
+    when: ansible_os_family == "RedHat"
 
   roles:
     - role: admin
@@ -18,34 +25,33 @@
     - role: polkadot
       tags: ['polkadot']
 
-  # tasks:
-  # - name: Install AppArmor
-  #   apt:
-  #     name: apparmor
-  #     state: present
-  #   tags: ['apparmor']
+  post_tasks:
+  - name: Check Polkadot version
+    command: polkadot --version
+    register: polkadot_version_output
 
-  # - name: Enable AppArmor service
-  #   service:
-  #     name: apparmor
-  #     state: started
-  #     enabled: true
-  #   tags: ['apparmor']
+  - name: Check Polkadot Execute Worker version
+    command: polkadot-execute-worker --version
+    register: execute_worker_version_output
 
-  # - name: Apply AppArmor profile
-  #   copy:
-  #     src: files/my_apparmor_profile
-  #     dest: /etc/apparmor.d/my_apparmor_profile
-  #   notify: Reload AppArmor
-  #   tags: ['apparmor']
+  - name: Check Polkadot Prepare Worker version
+    command: polkadot-prepare-worker --version
+    register: prepare_worker_version_output
 
-  # handlers:
-  # - name: Reload AppArmor
-  #   command: apparmor_parser -r /etc/apparmor.d/my_apparmor_profile
-  #   tags: ['apparmor']
+  - name: Print Polkadot version
+    debug:
+      msg: "Polkadot Version: {{ polkadot_version_output.stdout }}"
 
-  # post_tasks:
-  # - name: Check working
-  #   polkadot --version
-  # polkadot-execute-worker --version
-  # polkadot-prepare-worker --version
+  - name: Print Execute Worker version
+    debug:
+      msg: "Execute Worker Version: {{ execute_worker_version_output.stdout }}"
+
+  - name: Print Prepare Worker version
+    debug:
+      msg: "Prepare Worker Version: {{ prepare_worker_version_output.stdout }}"
+
+  - name: Run Polkadot Health Check
+    include_role:
+      name: polkadot
+      tasks_from: health_check.yaml
+    tags: ['health', 'post']
