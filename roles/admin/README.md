@@ -213,35 +213,24 @@ opsgenie:
 
 ```mermaid
 graph TD
-    subgraph Admin Services
-        A[Grafana Agent] --> |Push Metrics| B[Prometheus]
-        B --> |Visualization| C[Grafana]
-        D[Node Exporter] --> |System Metrics| A
-        E[Promtail] --> |Logs| C[Grafana]
-        F[Monit] --> |Monitor| A
-        F --> |Monitor| D
-        F --> |Monitor| E
-        T[Teleport] --> |Secure Access| S[Services]
+    A[Monitoring Node]
+    B[Node Exporter] --> |System Metrics| C[Grafana Agent]
+    D[Promtail] --> |Logs| C
+    C --> |Push Metrics| E[Prometheus]
+    C --> |Push Logs| F[Loki]
+    E --> |Visualization| G[Grafana]
+    
+    subgraph Security Layer
+        H[Firewall]
+        I[AppArmor]
+        J[SSH]
+        K[Teleport Bastion]
     end
 
-    subgraph Security
-        G[UFW Firewall]
-        H[AppArmor]
-        I[SSH Hardening]
-    end
-
-    subgraph External
-        TA[Teleport Auth Server]
-    end
-
-    G --> |Network Protection| A
-    H --> |MAC Policy| A
-    H --> |MAC Policy| D
-    H --> |MAC Policy| E
-    H --> |MAC Policy| F
-    H --> |MAC Policy| T
-    I --> |Access Control| A
-    T --> |Auth| TA
+    H --> |Protect| A
+    I --> |Secure| A
+    J --> |Access| A
+    K --> |Access| A
 ```
 
 ## Services Interaction

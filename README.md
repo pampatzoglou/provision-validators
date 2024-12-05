@@ -23,43 +23,26 @@ This Ansible collection provides a comprehensive, secure, and automated solution
 
 ```mermaid
 graph TD
-    subgraph Validator Infrastructure
-        A[Polkadot Validator Node] --> |Metrics| B[Grafana Agent]
-        B --> |Push Metrics| C[Prometheus]
-        C --> |Visualization| D[Grafana]
-        
-        subgraph Security Layer
-            G[Firewall]
-            H[SSH Hardening]
-            I[Binary Signature Verification]
-            J[AppArmor MAC]
-            T[Teleport]
-        end
-
-        subgraph Monitoring Components
-            B
-            K[Node Exporter]
-            L[Promtail] --> |Logs| D[Grafana]
-            M[Monit] --> |Monitor| B
-            M --> |Monitor| K
-            M --> |Monitor| L
-        end
-
-        A --> |Logs| L
-        K --> |System Metrics| B
-        A --> |Service Management| N[Systemd]
-        T --> |Secure Access| A
+    A[Polkadot Validator Node] --> |Metrics| B[Grafana Agent]
+    B --> |Push Metrics| C[Prometheus]
+    C --> |Visualization| D[Grafana]
+    A --> |Logs| E[Promtail]
+    E --> |Logs| B
+    B --> |Logs| F[Loki]
+    
+    subgraph Security Layer
+        G[Firewall]
+        H[SSH Hardening]
+        I[Binary Signature Verification]
+        J[AppArmor MAC]
+        T[Teleport Bastion]
     end
 
-    G --> |Network Protection| A
-    H --> |Access Control| A
-    I --> |Binary Validation| A
-    J --> |MAC Policy| A
-    J --> |MAC Policy| B
-    J --> |MAC Policy| K
-    J --> |MAC Policy| L
-    J --> |MAC Policy| M
-    J --> |MAC Policy| T
+    G --> |Protect| A
+    H --> |Access| A
+    I --> |Validate| A
+    J --> |Secure| A
+    T --> |Access| A
 ```
 
 ## Services Interaction
