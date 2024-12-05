@@ -22,7 +22,7 @@ This Ansible collection provides a comprehensive, secure, and automated solution
 ## Architecture
 
 ```mermaid
-graph TD
+graph LR
     subgraph Validator Node
         A[Polkadot Validator Node]
         B[Node Exporter]
@@ -37,14 +37,14 @@ graph TD
         E[Prometheus]
         F[Loki]
         G[Grafana]
-        E --> G
-        F --> G
+        E --> |Metrics| G
+        F --> |Logs| G
     end
     
-    subgraph Security Layer
+    subgraph Security
         H[Firewall]
         I[SSH Hardening]
-        J[Binary Signature Verification]
+        J[Binary Verify]
         K[AppArmor MAC]
         L[Teleport Bastion]
     end
@@ -75,35 +75,24 @@ graph LR
         E --> |Monitor| B
         E --> |Monitor| D
         T[Teleport]
-        
-        subgraph Security Layer
-            F[Firewall]
-            G[AppArmor]
-            H[SSH]
-        end
     end
 
     subgraph External Services
-        I[Prometheus] --> |Metrics| J[Grafana]
-        D --> |Logs| C
-        C --> |Logs| J
+        I[Prometheus]
+        J[Grafana]
+        K[Loki]
+        I --> |Metrics| J
+        K --> |Logs| J
         M[Teleport Bastion]
     end
 
     A --> |Metrics| C
     B --> |Metrics| C
+    D --> |Logs| C
     C --> |Metrics| I
+    C --> |Logs| K
 
     T --> |Access| M
-
-    F --> |Protect| A
-    G --> |MAC| A
-    G --> |MAC| B
-    G --> |MAC| C
-    G --> |MAC| D
-    G --> |MAC| E
-    G --> |MAC| T
-    H --> |Access| A
 ```
 
 ## Security and Hardening Features
