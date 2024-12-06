@@ -8,21 +8,14 @@ grafana_agent:
   data_dir: "/var/lib/grafana-agent"
   user: "grafana-agent"
   group: "grafana-agent"
-  enabled: true
-  remote_write:
-    - url: "http://prometheus:9090/api/v1/write"
-      basic_auth:
-        username: ""
-        password: ""
-  scrape_configs:
+  metrics_write:
+    url: "http://prometheus:9090/api/v1/write"
+  logs_write:
+    url: "http://localhost:3100/loki/api/v1/push"
+  extra_scrape_configs:
     - job_name: "polkadot"
       static_configs:
         - targets: ["localhost:9615"]
-      metrics_path: "/metrics"
-      scrape_interval: "15s"
-    - job_name: "node"
-      static_configs:
-        - targets: ["localhost:9100"]
       metrics_path: "/metrics"
       scrape_interval: "15s"
   apparmor:
@@ -31,8 +24,8 @@ grafana_agent:
 
 # Node Exporter Configuration
 node_exporter:
+  enabled: true  # Optional installation
   version: "1.8.2"
-  enabled: false  # Optional installation
   user: "node-exporter"
   group: "node-exporter"
   install_dir: "/usr/local/bin"
@@ -41,21 +34,24 @@ node_exporter:
     - "--collector.systemd"
     - "--collector.processes"
     - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run)($|/)"
+    - "--web.listen-address=:9100"
+    - "--web.max-requests=20"
   apparmor:
     enabled: "{{ apparmor.enabled and apparmor.profiles.node_exporter.enabled }}"
     enforce: "{{ apparmor.profiles.node_exporter.enforce }}"
 
 # Promtail Configuration
 promtail:
+  enabled: false  # Optional installation
   version: "3.2.1"
   user: "promtail"
   group: "promtail"
+  port: 9080
   install_dir: "/usr/local/bin"
   config_dir: "/etc/promtail"
   data_dir: "/var/lib/promtail"
   positions_dir: "/var/lib/promtail/positions"
-  enabled: true
-  loki_url: "http://loki:3100/loki/api/v1/push"
+  loki_url: "http://localhost:3100/loki/api/v1/push"
   scrape_configs:
     - job_name: polkadot
       static_configs:
@@ -81,22 +77,7 @@ promtail:
 
 # Monit Configuration
 monit:
-  enabled: false
-  config_dir: /etc/monit
-  config_file: monitrc
-  include_dir: /etc/monit/conf.d
-  check_interval: 30
-  log_file: /var/log/monit.log
-  mail_enabled: false
-  mail_from: monit@localhost
-  mail_to: root@localhost
-  mail_subject: Monit Alert
-  mail_server: localhost
-  mail_port: 25
-  mail_username: ""
-  mail_password: ""
-  mail_encryption: ""
-  mail_timeout: 30
+  enabled: true
   apparmor:
     enabled: "{{ apparmor.enabled and apparmor.profiles.monit.enabled }}"
     enforce: "{{ apparmor.profiles.monit.enforce }}"
@@ -169,7 +150,8 @@ firewalld:
 
 # AppArmor Configuration
 apparmor:
-  enabled: true  # Master switch for AppArmor
+  enabled: true
+  active: false  # Master switch for AppArmor
   profiles:
     grafana_agent:
       enabled: true

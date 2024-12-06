@@ -8,33 +8,37 @@ Wants=network-online.target
 Type=simple
 User={{ grafana_agent.user | default('grafana-agent') }}
 Group={{ grafana_agent.group | default('grafana-agent') }}
-ExecStart={{ grafana_agent.install_dir | default('/usr/local/bin') }}/grafana-agent \
-    --config.file={{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml
-
+ExecStartPre=/bin/sh -c 'echo $MAINPID > /run/grafana-agent/grafana-agent.pid'
+ExecStart=/usr/local/bin/grafana-agent --config.file={{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml --server.http.address=localhost:12345
+ExecStopPost=/bin/rm -f /run/grafana-agent/grafana-agent.pid
 Restart=always
 RestartSec=5
 StartLimitInterval=0
 StartLimitBurst=5
+
+# Define the location of the PID file
+RuntimeDirectory=grafana-agent
+RuntimeDirectoryMode=0755
+PIDFile=/run/grafana-agent/grafana-agent.pid
 
 # Security hardening
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
+ReadWritePaths=/run/grafana-agent /var/lib/grafana-agent /etc/grafana-agent
+CapabilityBoundingSet=
 PrivateDevices=yes
-ProtectControlGroups=yes
-ProtectKernelModules=yes
+ProtectHostname=yes
+ProtectClock=yes
 ProtectKernelTunables=yes
-RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
-RestrictNamespaces=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
-MemoryDenyWriteExecute=yes
-
-# Read-only access to system
-ReadWritePaths={{ grafana_agent.data_dir | default('/var/lib/grafana-agent') }}
-ReadOnlyPaths=/proc
-ReadOnlyPaths=/sys
+LockPersonality=yes
+RemoveIPC=yes
 
 [Install]
 WantedBy=multi-user.target

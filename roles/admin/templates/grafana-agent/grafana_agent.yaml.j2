@@ -1,54 +1,37 @@
+# For a full configuration reference, see: https://grafana.com/docs/agent/latest/configuration/.
 server:
   log_level: info
 
 metrics:
   global:
-    scrape_interval: 15s
-    remote_write:
-{% for remote in grafana_agent.remote_write | default([]) %}
-      - url: {{ remote.url }}
-{% if remote.basic_auth is defined %}
-        basic_auth:
-          username: {{ remote.basic_auth.username }}
-          password: {{ remote.basic_auth.password }}
-{% endif %}
-{% endfor %}
-
+    scrape_interval: 1m
+  wal_directory: '/var/lib/grafana-agent'
   configs:
     - name: default
+      host_filter: false
+      remote_write:
+        - url: {{ grafana_agent.metrics_write.url }}
       scrape_configs:
-{% if grafana_agent.node_exporter.enabled | default(false) %}
-        - job_name: 'node_exporter'
+        - job_name: node_exporter
           static_configs:
-            - targets: ['localhost:9100']
-{% else %}
-        - job_name: 'direct_system_metrics'
+            - targets: ['127.0.0.1:{{ node_exporter.port }}']
+{% if promtail is defined and promtail.enabled | bool %}
+        - job_name: promtail
           static_configs:
-            - targets: ['localhost:9100']
+            - targets: ['127.0.0.1:{{ promtail.port }}']
 {% endif %}
 
 logs:
-  positions_directory: {{ grafana_agent.data_dir | default('/var/lib/grafana-agent') }}/positions
   configs:
   - name: default
+    positions:
+      filename: /tmp/positions.yaml
     clients:
-{% if grafana_agent.loki_url is defined %}
-      - url: {{ grafana_agent.loki_url }}
-{% endif %}
+      - url: {{ grafana_agent.logs_write.url }}
     scrape_configs:
-{% if grafana_agent.promtail.enabled | default(false) %}
-      - job_name: 'promtail'
+      - job_name: varlogs
         static_configs:
-          - targets: ['localhost:9080']
-{% else %}
-      - job_name: 'direct_logs'
-        static_configs:
-          - targets: ['localhost:9080']
-{% endif %}
-
-integrations:
-  node_exporter:
-    enabled: {{ grafana_agent.node_exporter.enabled | default(true) }}
-    include_exporter_metrics: true
-  promtail:
-    enabled: {{ grafana_agent.promtail.enabled | default(true) }}
+          - targets: [localhost]
+            labels:
+              job: varlogs
+              __path__: /var/log/*log

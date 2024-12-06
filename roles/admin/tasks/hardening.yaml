@@ -38,3 +38,23 @@
   when: hardening.fail2ban.enabled | default(false) | bool and not ansible_connection == 'docker'
   become: true
   tags: ['hardening', 'fail2ban']
+
+- name: Install AppArmor and utilities
+  apt:
+    name: 
+      - apparmor
+      - apparmor-utils
+      - apparmor-profiles
+    state: present
+  when: apparmor.enabled | default(false) | bool
+  become: true
+  tags: ['hardening', 'apparmor']
+
+- name: Manage AppArmor service
+  systemd:
+    name: apparmor
+    enabled: "{{ apparmor.active | default(false) | bool }}"
+    state: "{{ 'started' if apparmor.active | default(false) | bool else 'stopped' }}"
+  when: apparmor.enabled | default(false) | bool
+  become: true
+  tags: ['hardening', 'apparmor']

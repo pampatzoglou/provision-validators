@@ -89,7 +89,16 @@
         dest: "{{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml"
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
-        mode: '0640'
+        mode: '0644'
+      notify: restart grafana-agent
+
+    - name: Ensure runtime directory exists
+      file:
+        path: /run/grafana-agent
+        state: directory
+        owner: "{{ grafana_agent.user | default('grafana-agent') }}"
+        group: "{{ grafana_agent.group | default('grafana-agent') }}"
+        mode: '0755'
       notify: restart grafana-agent
 
     - name: Template Grafana Agent systemd service

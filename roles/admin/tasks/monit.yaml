@@ -17,15 +17,6 @@
   become: true
   tags: ['monit']
 
-- name: Template monit main configuration
-  template:
-    src: templates/monit/monit.conf.j2
-    dest: "{{ monit.config_dir | default('/etc/monit') }}/{{ monit.config_file | default('monitrc') }}"
-    mode: '0600'
-  become: true
-  notify: restart monit
-  tags: ['monit']
-
 - name: Enable and start monit service
   systemd:
     name: monit

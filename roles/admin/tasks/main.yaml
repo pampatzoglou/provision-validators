@@ -1,26 +1,26 @@
 ---
 # tasks file for admin
-- name: Include firewall tasks
-  block:
-    - name: Include UFW tasks
-      include_tasks: ufw.yaml
-      when: firewall.type == 'ufw'
-      tags: ['firewall', 'ufw']
+# - name: Include firewall tasks
+#   block:
+#     - name: Include UFW tasks
+#       include_tasks: ufw.yaml
+#       when: firewall.type == 'ufw'
+#       tags: ['firewall', 'ufw']
 
-    - name: Include FirewallD tasks
-      include_tasks: firewalld.yaml
-      when: firewall.type == 'firewalld'
-      tags: ['firewall', 'firewalld']
-  when: firewall.enabled
-  tags: ['firewall']
+#     - name: Include FirewallD tasks
+#       include_tasks: firewalld.yaml
+#       when: firewall.type == 'firewalld'
+#       tags: ['firewall', 'firewalld']
+#   when: firewall.enabled
+#   tags: ['firewall']
 
-- name: Include SSH hardening
-  include_tasks: ssh_hardening.yaml
-  tags: ['hardening']
+# - name: Include SSH hardening
+#   include_tasks: ssh_hardening.yaml
+#   tags: ['hardening']
 
-- name: Include Hardening tasks
-  include_tasks: hardening.yaml
-  tags: ['hardening']
+# - name: Include Hardening tasks
+#   include_tasks: hardening.yaml
+#   tags: ['hardening']
 
 - name: Include Grafana Agent tasks
   include_tasks: grafana_agent.yaml
@@ -42,12 +42,12 @@
   when: monit is defined and monit.enabled | default(false) | bool
   tags: ['monitoring', 'monit']
 
-- name: Include OpsGenie Heartbeat tasks
-  include_tasks: opsgenie.yaml
-  when: opsgenie.heartbeats.enabled | default(false) | bool
-  tags: ['monitoring', 'opsgenie']
+# - name: Include OpsGenie Heartbeat tasks
+#   include_tasks: opsgenie.yaml
+#   when: opsgenie.heartbeats.enabled | default(false) | bool
+#   tags: ['monitoring', 'opsgenie']
 
-- name: Include Teleport tasks
-  include_tasks: teleport.yaml
-  when: teleport is defined and teleport.enabled | default(false) | bool
-  tags: ['hardening', 'teleport']
+# - name: Include Teleport tasks
+#   include_tasks: teleport.yaml
+#   when: teleport is defined and teleport.enabled | default(false) | bool
+#   tags: ['hardening', 'teleport']
