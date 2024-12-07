@@ -14,21 +14,86 @@
         group: "{{ polkadot.group | default('polkadot') }}"
         system: yes
         shell: /sbin/nologin
-        create_home: no
+        create_home: yes
+        home: /home/polkadot
         state: present
 
     - name: Create required directories
       file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ polkadot.user | default('polkadot') }}"
-        group: "{{ polkadot.group | default('polkadot') }}"
+        owner: "{{ polkadot.user }}"
+        group: "{{ polkadot.group }}"
         mode: '0755'
       loop:
-        - /data/polkadot
+        - "{{ polkadot.base_path }}"
         - /var/run/polkadot
         - /var/log/polkadot
+        - /home/polkadot
+        - /home/polkadot/.local
+        - /home/polkadot/.local/share
         - /home/polkadot/.local/share/polkadot
+        - "{{ polkadot.base_path }}/chains/polkadot/network"
+
+    - name: Check if node key exists
+      stat:
+        path: "{{ polkadot.base_path }}/chains/polkadot/network/secret_ed25519"
+      register: node_key_file
+
+    - name: Write predefined node key
+      copy:
+        content: "{{ polkadot.node_key }}"
+        dest: "{{ polkadot.base_path }}/chains/polkadot/network/secret_ed25519"
+        owner: "{{ polkadot.user }}"
+        group: "{{ polkadot.group }}"
+        mode: '0600'
+      when: polkadot.node_key | length > 0
+      notify: restart polkadot
+
+    - name: Generate node key if not exists
+      command: 
+        cmd: polkadot key generate-node-key --base-path {{ polkadot.base_path }}
+      become: true
+      become_user: "{{ polkadot.user }}"
+      when: 
+        - not node_key_file.stat.exists
+        - polkadot.node_key | length == 0
+      notify: restart polkadot
+
+    - name: Get public IP address
+      uri:
+        url: https://api.ipify.org?format=json
+        return_content: yes
+      register: public_ip
+      tags: ['setup', 'network']
+
+    - name: Template systemd service file
+      template:
+        src: polkadot.service.j2
+        dest: /etc/systemd/system/polkadot.service
+        mode: '0644'
+      notify: restart polkadot
+      when: not ansible_connection == 'docker'
+
+    - name: Template configuration file
+      template:
+        src: config.json.j2
+        dest: /data/polkadot/config.json
+        owner: "{{ polkadot.user | default('polkadot') }}"
+        group: "{{ polkadot.group | default('polkadot') }}"
+        mode: '0644'
+      notify: restart polkadot
+
+    - name: Manage polkadot service
+      systemd:
+        name: polkadot
+        state: "{{ polkadot_service_state }}"
+        enabled: "{{ polkadot_service_enabled }}"
+        daemon_reload: yes
+      when: not ansible_connection == 'docker'
+
+    - name: Restart polkadot service
+      meta: flush_handlers
   tags: ['setup', 'user']
 
 - block:
@@ -86,39 +151,9 @@
   tags: ['setup', 'firewall']
 
 - block:
-    - name: Template systemd service file
-      template:
-        src: polkadot.service.j2
-        dest: /etc/systemd/system/polkadot.service
-        mode: '0644'
-      notify: restart polkadot
-      when: not ansible_connection == 'docker'
-
-    - name: Template configuration file
-      template:
-        src: config.json.j2
-        dest: /data/polkadot/config.json
-        owner: "{{ polkadot.user | default('polkadot') }}"
-        group: "{{ polkadot.group | default('polkadot') }}"
-        mode: '0644'
-      notify: restart polkadot
-
-    - name: Manage polkadot service
-      systemd:
-        name: polkadot
-        state: "{{ polkadot_service_state }}"
-        enabled: "{{ polkadot_service_enabled }}"
-        daemon_reload: yes
-      when: not ansible_connection == 'docker'
-
-    - name: Restart polkadot service
-      meta: flush_handlers
-  tags: ['setup', 'service']
-
-- block:
     - name: Template monit configuration
       template:
-        src: monit_polkadot.j2
+        src: polkadot.monit.j2
         dest: /etc/monit/conf.d/polkadot
         mode: '0644'
       notify: reload monit
@@ -141,3 +176,44 @@
             apparmor.profiles.polkadot.enforce | default(false) | bool
       notify: reload apparmor
   tags: ['setup', 'security', 'apparmor']
+
+- name: Check node health and performance
+  block:
+    - name: Wait for node to start (30s)
+      wait_for:
+        timeout: 30
+
+    - name: Check Prometheus metrics endpoint
+      uri:
+        url: "http://localhost:{{ polkadot.ports.prometheus }}/metrics"
+        return_content: yes
+      register: metrics
+      failed_when: false
+      changed_when: false
+
+    - name: Check RPC endpoint
+      uri:
+        url: "http://localhost:{{ polkadot.ports.rpc }}"
+        return_content: yes
+      register: rpc
+      failed_when: false
+      changed_when: false
+
+    - name: Get node information
+      shell: |
+        journalctl -u polkadot -n 50 --no-pager | grep -E "🏁|⚠️|Chain specification|Local node|Our best:|public node|Discovered new external address"
+      register: node_info
+      changed_when: false
+
+    - name: Display node information
+      debug:
+        msg: |
+          Node Status:
+          -----------
+          Prometheus Metrics: {{ 'Available' if not metrics.failed else 'Not Available' }}
+          RPC Endpoint: {{ 'Available' if not rpc.failed else 'Not Available' }}
+          
+          Performance Metrics:
+          ------------------
+          {{ node_info.stdout_lines | join('\n') }}
+  tags: ['setup', 'health']

@@ -265,6 +265,25 @@ backup_config:
     enabled: true
     algorithm: "aes-256-gcm"
 
+# Node Configuration
+polkadot:
+  user: polkadot
+  group: polkadot
+  version: "1.6.0"
+  node_key: ""  # Optional: Set this to use a predefined node key
+  base_path: /data/polkadot
+  ports:
+    p2p: 30333
+    rpc: 9944
+    prometheus: 9615
+  rpc:
+    enabled: true
+    methods: safe
+    cors: all
+  prometheus:
+    enabled: true
+    external: true
+
 # Lifecycle Synchronization Configuration
 lifecycle:
   sync:

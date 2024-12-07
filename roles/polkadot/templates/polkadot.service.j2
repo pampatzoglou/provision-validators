@@ -5,16 +5,24 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-User=polkadot
-Group=polkadot
+User={{ polkadot.user }}
+Group={{ polkadot.group }}
 Environment="RUST_BACKTRACE=1"
 ExecStart=/usr/local/bin/polkadot \
-    --config /data/polkadot/config.json \
-    --validator
+    --base-path {{ polkadot.base_path }} \
+    --validator \
+    --name "{{ inventory_hostname }}" \
+    --public-addr "/ip4/{{ public_ip.json.ip }}/tcp/{{ polkadot.ports.p2p }}" \
+{% if polkadot.prometheus.enabled %}    --prometheus-external \
+    --prometheus-port {{ polkadot.ports.prometheus }} \
+{% endif %}{% if polkadot.rpc.enabled %}    --rpc-cors {{ polkadot.rpc.cors }} \
+    --rpc-methods={{ polkadot.rpc.methods }} \
+    --rpc-port {{ polkadot.ports.rpc }}{% endif %}
+
 Restart=always
 RestartSec=10
 LimitNOFILE=10000
-WorkingDirectory=/home/polkadot
+WorkingDirectory={{ polkadot.base_path }}
 StateDirectory=polkadot
 LogsDirectory=polkadot
 RuntimeDirectory=polkadot
@@ -24,13 +32,12 @@ PrivateTmp=true
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/data/polkadot /var/run/polkadot /var/log/polkadot /home/polkadot/.local/share/polkadot
+ReadWritePaths={{ polkadot.base_path }} /var/run/polkadot /var/log/polkadot /home/polkadot/.local/share/polkadot
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
 LockPersonality=true
-MemoryDenyWriteExecute=true
-RestrictRealtime=true
+MemoryDenyWriteExecute=false
 
 [Install]
 WantedBy=multi-user.target

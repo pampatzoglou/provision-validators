@@ -20,38 +20,8 @@
     when: ansible_os_family == "RedHat"
 
   roles:
-    - role: admin
-      tags: ['admin', 'security', 'monitoring']
-    # - role: polkadot
-    #   tags: ['polkadot']
+    # - role: admin
+    #   tags: ['admin', 'security', 'monitoring']
+    - role: polkadot
+      tags: ['polkadot']
 
-  # post_tasks:
-  # - name: Check Polkadot version
-  #   command: polkadot --version
-  #   register: polkadot_version_output
-
-  # - name: Check Polkadot Execute Worker version
-  #   command: polkadot-execute-worker --version
-  #   register: execute_worker_version_output
-
-  # - name: Check Polkadot Prepare Worker version
-  #   command: polkadot-prepare-worker --version
-  #   register: prepare_worker_version_output
-
-  # - name: Print Polkadot version
-  #   debug:
-  #     msg: "Polkadot Version: {{ polkadot_version_output.stdout }}"
-
-  # - name: Print Execute Worker version
-  #   debug:
-  #     msg: "Execute Worker Version: {{ execute_worker_version_output.stdout }}"
-
-  # - name: Print Prepare Worker version
-  #   debug:
-  #     msg: "Prepare Worker Version: {{ prepare_worker_version_output.stdout }}"
-
-  # - name: Run Polkadot Health Check
-  #   include_role:
-  #     name: polkadot
-  #     tasks_from: health_check.yaml
-  #   tags: ['health', 'post']
