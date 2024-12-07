@@ -43,6 +43,28 @@ logs:
               validator_name: {{ validator_name | default('polkadot-validator') }}
               chain: {{ chain_name | default('polkadot') }}
               __path__: /var/log/*log
+      - job_name: validator
+        static_configs:
+          - targets: [localhost]
+            labels:
+              job: validator
+              host: {{ inventory_hostname }}
+              validator_name: {{ validator_name | default('polkadot-validator') }}
+              chain: {{ chain_name | default('polkadot') }}
+              __path__: /var/log/polkadot.log
+        pipeline_stages:
+          - json:
+              expressions:
+                level: level
+                target: target
+                msg: msg
+                caller: caller
+                thread_name: thread_name
+          - labels:
+              level:
+              target:
+              caller:
+              thread_name:
       - job_name: journal
         journal:
           json: false
