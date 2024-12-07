@@ -91,17 +91,36 @@
         daemon_reload: yes
       when: not node_exporter.enabled | bool
 
-    - name: Wait for Node Exporter metrics endpoint to be available
-      uri:
-        url: "http://localhost:{{ node_exporter.port }}/metrics"
-        method: GET
-        status_code: 200
-      register: metrics_check
-      until: metrics_check.status == 200
-      retries: 12
-      delay: 5
-      when: node_exporter.enabled | bool
-
   become: true
   when: node_exporter.enabled | default(false) | bool
   tags: ['monitoring', 'node_exporter']
+
+- name: Configure AppArmor for Node Exporter
+  block:
+    - name: Template AppArmor profile for Node Exporter
+      template:
+        src: node-exporter/node-exporter.apparmor.j2
+        dest: /etc/apparmor.d/usr.local.bin.node_exporter
+        mode: '0644'
+      notify: reload apparmor
+
+    - name: Ensure AppArmor profile is enforced
+      command: aa-enforce usr.local.bin.node_exporter
+      changed_when: false
+      when: node_exporter.apparmor.enforce | bool
+
+  become: true
+  when: 
+    - node_exporter.enabled | default(false) | bool
+    - node_exporter.apparmor.enabled | default(false) | bool
+  tags: ['monitoring', 'node_exporter', 'security']
+
+- name: Wait for Node Exporter metrics endpoint to be available
+  uri:
+    url: "http://localhost:{{ node_exporter.port }}/metrics"
+    method: GET
+    status_code: 200
+  register: metrics_check
+  until: metrics_check.status == 200
+  retries: 12
+  delay: 5

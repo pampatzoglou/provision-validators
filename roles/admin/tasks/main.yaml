@@ -1,53 +1,56 @@
 ---
 # tasks file for admin
-# - name: Include firewall tasks
-#   block:
-#     - name: Include UFW tasks
-#       include_tasks: ufw.yaml
-#       when: firewall.type == 'ufw'
-#       tags: ['firewall', 'ufw']
+- name: Include security tasks
+  block:
+    - name: Include system hardening
+      include_tasks: hardening.yaml
+      tags: ['security', 'hardening']
 
-#     - name: Include FirewallD tasks
-#       include_tasks: firewalld.yaml
-#       when: firewall.type == 'firewalld'
-#       tags: ['firewall', 'firewalld']
-#   when: firewall.enabled
-#   tags: ['firewall']
+    - name: Include UFW firewall
+      include_tasks: ufw.yaml
+      when:
+      - firewall.enabled | default(false) | bool
+      - firewall.type == 'ufw'
+      tags: ['security', 'firewall']
 
-# - name: Include SSH hardening
-#   include_tasks: ssh_hardening.yaml
-#   tags: ['hardening']
+    - name: Include FirewallD firewall
+      include_tasks: firewalld.yaml
+      when: 
+      - firewall.enabled | default(false) | bool
+      - firewall.type == 'firewalld'
+      tags: ['security', 'firewall']
 
-# - name: Include Hardening tasks
-#   include_tasks: hardening.yaml
-#   tags: ['hardening']
+    - name: Include SSH hardening
+      include_tasks: ssh_hardening.yaml
+      tags: ['security', 'ssh']
 
-- name: Include Grafana Agent tasks
-  include_tasks: grafana_agent.yaml
-  when: grafana_agent is defined and grafana_agent.enabled | default(false) | bool
-  tags: ['monitoring', 'grafana_agent']
+    - name: Include Teleport setup
+      include_tasks: teleport.yaml
+      when: teleport is defined and teleport.enabled | default(false) | bool
+      tags: ['security', 'ssh', 'teleport']
 
-- name: Include Node exporter
-  include_tasks: node_exporter.yaml
-  when: node_exporter is defined and node_exporter.enabled | default(false) | bool
-  tags: ['monitoring', 'node_exporter']
+  tags: ['security']
 
-- name: Include promtail
-  include_tasks: promtail.yaml
-  when: promtail is defined and promtail.enabled | default(false) | bool
-  tags: ['monitoring', 'promtail']
+- name: Include monitoring tasks
+  block:
+    - name: Include Node exporter
+      include_tasks: node_exporter.yaml
+      when: node_exporter is defined and node_exporter.enabled | default(false) | bool
+      tags: ['monitoring', 'metrics']
 
-- name: Include Monit tasks
-  include_tasks: monit.yaml
-  when: monit is defined and monit.enabled | default(false) | bool
-  tags: ['monitoring', 'monit']
+    - name: Include Promtail logging
+      include_tasks: promtail.yaml
+      when: promtail is defined and promtail.enabled | default(false) | bool
+      tags: ['monitoring', 'logging']
 
-# - name: Include OpsGenie Heartbeat tasks
-#   include_tasks: opsgenie.yaml
-#   when: opsgenie.heartbeats.enabled | default(false) | bool
-#   tags: ['monitoring', 'opsgenie']
+    - name: Include Grafana Agent
+      include_tasks: grafana_agent.yaml
+      when: grafana_agent is defined and grafana_agent.enabled | default(false) | bool
+      tags: ['monitoring', 'metrics']
 
-# - name: Include Teleport tasks
-#   include_tasks: teleport.yaml
-#   when: teleport is defined and teleport.enabled | default(false) | bool
-#   tags: ['hardening', 'teleport']
+    - name: Include Monit process monitoring
+      include_tasks: monit.yaml
+      when: monit is defined and monit.enabled | default(false) | bool
+      tags: ['monitoring', 'process']
+
+  tags: ['monitoring']

@@ -1,13 +1,27 @@
 ---
+# Node Exporter Configuration
+node_exporter:
+  enabled: true  # Optional installation
+  version: "1.8.2"
+  user: "node-exporter"
+  group: "node-exporter"
+  install_dir: "/usr/local/bin"
+  port: 9100
+  apparmor:
+    enabled: "{{ apparmor.enabled and apparmor.profiles.node_exporter.enabled }}"
+    enforce: "{{ apparmor.profiles.node_exporter.enforce }}"
+
 # defaults file for admin
 # Grafana Agent Configuration
 grafana_agent:
+  enabled: true
   version: "0.43.4"
   install_dir: "/usr/local/bin"
   config_dir: "/etc/grafana-agent"
   data_dir: "/var/lib/grafana-agent"
   user: "grafana-agent"
   group: "grafana-agent"
+  port: 12345
   metrics_write:
     url: "http://prometheus:9090/api/v1/write"
   logs_write:
@@ -21,24 +35,6 @@ grafana_agent:
   apparmor:
     enabled: "{{ apparmor.enabled and apparmor.profiles.grafana_agent.enabled }}"
     enforce: "{{ apparmor.profiles.grafana_agent.enforce }}"
-
-# Node Exporter Configuration
-node_exporter:
-  enabled: true  # Optional installation
-  version: "1.8.2"
-  user: "node-exporter"
-  group: "node-exporter"
-  install_dir: "/usr/local/bin"
-  port: 9100
-  options:
-    - "--collector.systemd"
-    - "--collector.processes"
-    - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run)($|/)"
-    - "--web.listen-address=:9100"
-    - "--web.max-requests=20"
-  apparmor:
-    enabled: "{{ apparmor.enabled and apparmor.profiles.node_exporter.enabled }}"
-    enforce: "{{ apparmor.profiles.node_exporter.enforce }}"
 
 # Promtail Configuration
 promtail:
@@ -91,26 +87,26 @@ teleport:
   install_dir: "/usr/local/bin"
   config_dir: "/etc/teleport"
   data_dir: "/var/lib/teleport"
-  auth_token: ""  # Required for joining existing cluster
-  auth_server: ""  # Required - Auth server address
   node_name: "{{ inventory_hostname }}"
-  labels:
-    role: "validator"
-    environment: "production"
+
+  # Authentication Service Configuration
   auth:
-    enabled: false  # Set to true if this is an auth server
-  proxy:
-    enabled: false  # Set to true if this is a proxy server
+    enabled: true
+
+  # SSH Service Configuration
   ssh_service:
     enabled: true
-    listen_addr: "0.0.0.0:3022"
-  app_service:
-    enabled: false
-  kubernetes_service:
-    enabled: false
-  apparmor:
-    enabled: "{{ apparmor.enabled and apparmor.profiles.teleport.enabled }}"
-    enforce: "{{ apparmor.profiles.teleport.enforce }}"
+    commands:
+      - name: hostname
+        command: [hostname]
+        period: "1m0s"
+      - name: uptime
+        command: [uptime, -p]
+        period: "1m0s"
+
+  # Proxy Service Configuration
+  proxy:
+    enabled: true
 
 # Firewall Configuration
 firewall:
@@ -125,13 +121,7 @@ firewall:
     - port: 3022
       proto: tcp
       rule: allow
-    - port: 9100
-      proto: tcp
-      rule: allow
-    - port: 9080
-      proto: tcp
-      rule: allow
-    - port: 2812
+    - port: 3080
       proto: tcp
       rule: allow
 
@@ -150,7 +140,7 @@ firewalld:
 
 # AppArmor Configuration
 apparmor:
-  enabled: true
+  enabled: false
   active: false  # Master switch for AppArmor
   profiles:
     grafana_agent:

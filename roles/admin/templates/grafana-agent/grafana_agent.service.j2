@@ -8,9 +8,7 @@ Wants=network-online.target
 Type=simple
 User={{ grafana_agent.user | default('grafana-agent') }}
 Group={{ grafana_agent.group | default('grafana-agent') }}
-ExecStartPre=/bin/sh -c 'echo $MAINPID > /run/grafana-agent/grafana-agent.pid'
-ExecStart=/usr/local/bin/grafana-agent --config.file={{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml --server.http.address=localhost:12345
-ExecStopPost=/bin/rm -f /run/grafana-agent/grafana-agent.pid
+ExecStart=/usr/local/bin/grafana-agent --config.file={{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml
 Restart=always
 RestartSec=5
 StartLimitInterval=0

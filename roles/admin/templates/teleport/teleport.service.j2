@@ -4,20 +4,21 @@ After=network.target
 
 [Service]
 Type=simple
-User={{ teleport.user }}
-Group={{ teleport.group }}
+User=teleport
+Group=teleport
 Restart=on-failure
-ExecStart={{ teleport.install_dir }}/teleport start --config={{ teleport.config_dir }}/teleport.yaml --pid-file=/run/teleport.pid
+RuntimeDirectory=teleport
+RuntimeDirectoryMode=0755
+PIDFile=/run/teleport/teleport.pid
+ExecStart=/usr/local/bin/teleport start --config=/etc/teleport/teleport.yaml --pid-file=/run/teleport/teleport.pid
 ExecReload=/bin/kill -HUP $MAINPID
-PIDFile=/run/teleport.pid
 LimitNOFILE=524288
 
 # Security settings
-ProtectSystem=strict
+ProtectSystem=full
 ProtectHome=true
-PrivateTmp=true
 NoNewPrivileges=true
-ReadWritePaths={{ teleport.data_dir }} {{ teleport.config_dir }}
+ReadWritePaths=/var/lib/teleport /etc/teleport /run/teleport
 
 [Install]
 WantedBy=multi-user.target

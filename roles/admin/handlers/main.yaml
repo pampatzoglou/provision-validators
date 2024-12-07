@@ -6,13 +6,6 @@
     daemon_reload: yes
   when: not ansible_connection == 'docker'
 
-- name: restart grafana-agent
-  systemd:
-    name: grafana-agent
-    state: restarted
-    daemon_reload: yes
-  when: grafana_agent.enabled | bool and not ansible_connection == 'docker'
-
 - name: restart node-exporter
   systemd:
     name: node-exporter

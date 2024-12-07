@@ -68,7 +68,6 @@
         remote_src: yes
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
-      notify: restart grafana-agent
 
     - name: Clean up temporary files
       file:
@@ -90,7 +89,7 @@
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
         mode: '0644'
-      notify: restart grafana-agent
+      register: grafana_agent_config_status
 
     - name: Ensure runtime directory exists
       file:
@@ -99,25 +98,26 @@
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
         mode: '0755'
-      notify: restart grafana-agent
+      register: grafana_agent_runtime_status
 
     - name: Template Grafana Agent systemd service
       template:
         src: templates/grafana-agent/grafana_agent.service.j2
         dest: /etc/systemd/system/grafana-agent.service
         mode: '0644'
-      notify:
-        - reload systemd
-        - restart grafana-agent
-      when: not ansible_connection == 'docker'
+      register: grafana_agent_service_status
+      notify: reload systemd
 
-    - name: Enable and start Grafana Agent service
+    - name: Restart Grafana Agent service
       systemd:
         name: grafana-agent
-        state: started
-        enabled: yes
-        daemon_reload: yes
-      when: grafana_agent.enabled | default(false) | bool and not ansible_connection == 'docker'
+        state: restarted
+      when: 
+        - grafana_agent.enabled | default(false) | bool 
+        - not ansible_connection == 'docker'
+        - grafana_agent_config_status.changed or grafana_agent_runtime_status.changed or grafana_agent_service_status.changed
+      ignore_errors: yes
+
   become: true
   tags: ['grafana_agent', 'service']
 
@@ -151,3 +151,14 @@
     - ansible_os_family == "Debian"
     - ansible_distribution_major_version | int >= 10
   tags: ['grafana_agent', 'security', 'apparmor']
+
+- name: Wait for Grafana Agent metrics endpoint to be available
+  uri:
+    url: "http://localhost:{{ grafana_agent.port }}/metrics"
+    method: GET
+    status_code: 200
+  register: metrics_check
+  until: metrics_check.status == 200
+  retries: 12
+  delay: 5
+  when: grafana_agent.enabled | bool
