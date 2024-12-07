@@ -20,8 +20,8 @@
     when: ansible_os_family == "RedHat"
 
   roles:
-    # - role: admin
-    #   tags: ['admin', 'security', 'monitoring']
+    - role: admin
+      tags: ['admin', 'security', 'monitoring']
     - role: polkadot
       tags: ['polkadot']
 

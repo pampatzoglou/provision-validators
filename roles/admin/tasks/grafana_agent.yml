@@ -1,0 +1,37 @@
+---
+- name: Create grafana-agent user
+  user:
+    name: "{{ grafana_agent.user }}"
+    system: yes
+    groups: systemd-journal,adm
+    append: yes
+    state: present
+
+- name: Set permissions on log directories
+  file:
+    path: "{{ item }}"
+    mode: '0755'
+    state: directory
+  with_items:
+    - /var/log
+    - /var/log/journal
+
+- name: Set ACL for grafana-agent user on log files
+  acl:
+    path: /var/log
+    entity: "{{ grafana_agent.user }}"
+    etype: user
+    permissions: rx
+    recursive: yes
+    state: present
+
+- name: Create grafana-agent directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ grafana_agent.user }}"
+    group: "{{ grafana_agent.group }}"
+    mode: '0755'
+  with_items:
+    - "{{ grafana_agent.config_dir }}"
+    - "{{ grafana_agent.data_dir }}"

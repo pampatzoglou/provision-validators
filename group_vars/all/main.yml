@@ -1,0 +1,16 @@
+---
+# Grafana Agent Configuration
+grafana_agent:
+  enabled: true
+  version: "0.39.1"
+  metrics_write:
+    url: "http://localhost:9090/api/v1/write"
+  logs_write:
+    url: "http://localhost:3100/loki/api/v1/push"
+  http_port: 12345
+  port: 12345
+  user: grafana-agent
+  group: grafana-agent
+  install_dir: /usr/local/bin
+  config_dir: /etc/grafana-agent
+  data_dir: /var/lib/grafana-agent

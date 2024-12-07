@@ -1,0 +1,4 @@
+---
+- name: Include grafana-agent tasks
+  include_tasks: grafana_agent.yml
+  when: grafana_agent.enabled | default(true)
