@@ -77,7 +77,7 @@
 
     - name: Template configuration file
       template:
-        src: config.json.j2
+        src: polkadot.config.json.j2
         dest: /data/polkadot/config.json
         owner: "{{ polkadot.user | default('polkadot') }}"
         group: "{{ polkadot.group | default('polkadot') }}"
@@ -189,22 +189,3 @@
       register: rpc
       failed_when: false
       changed_when: false
-
-    - name: Get node information
-      shell: |
-        journalctl -u polkadot -n 50 --no-pager | grep -E "🏁|⚠️|Chain specification|Local node|Our best:|public node|Discovered new external address"
-      register: node_info
-      changed_when: false
-
-    - name: Display node information
-      debug:
-        msg: |
-          Node Status:
-          -----------
-          Prometheus Metrics: {{ 'Available' if not metrics.failed else 'Not Available' }}
-          RPC Endpoint: {{ 'Available' if not rpc.failed else 'Not Available' }}
-          
-          Performance Metrics:
-          ------------------
-          {{ node_info.stdout_lines | join('\n') }}
-  tags: ['setup', 'health']
