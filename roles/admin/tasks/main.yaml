@@ -38,19 +38,17 @@
       when: node_exporter is defined and node_exporter.enabled | default(false) | bool
       tags: ['monitoring', 'metrics']
 
-    - name: Include Promtail logging
-      include_tasks: promtail.yaml
-      when: promtail is defined and promtail.enabled | default(false) | bool
-      tags: ['monitoring', 'logging']
-
     - name: Include Grafana Agent
       include_tasks: grafana_agent.yaml
       when: grafana_agent is defined and grafana_agent.enabled | default(false) | bool
       tags: ['monitoring', 'metrics']
 
-    - name: Include Monit process monitoring
-      include_tasks: monit.yaml
-      when: monit is defined and monit.enabled | default(false) | bool
-      tags: ['monitoring', 'process']
+    - name: Include prometheus
+      include_tasks: prometheus.yaml
+      tags: ['monitoring', 'metrics']
+
+    - name: Include alertmanager
+      include_tasks: alertmanager.yaml
+      tags: ['monitoring', 'alerts']
 
   tags: ['monitoring']

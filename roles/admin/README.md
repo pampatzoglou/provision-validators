@@ -12,7 +12,6 @@ This role manages system administration tasks, monitoring, and secure access for
 ## Features
 
 - UFW firewall configuration
-- Monit system monitoring
 - Grafana Agent for metrics collection
 - Promtail for log aggregation
 - Node Exporter for system metrics
@@ -97,9 +96,6 @@ apparmor:
     promtail:
       enabled: true
       enforce: true
-    monit:
-      enabled: true
-      enforce: true
     teleport:
       enabled: true
       enforce: true
@@ -122,17 +118,6 @@ ufw:
   rules:
     - { port: 22, proto: "tcp", rule: "allow" }
     - { port: 3022, proto: "tcp", rule: "allow" }
-```
-
-### Monit Configuration
-```yaml
-monit:
-  enabled: true
-  config_dir: "/etc/monit"
-  config_file: "/etc/monit/monitrc"
-  include_dir: "/etc/monit/conf.d"
-  check_interval: 30
-  start_delay: 120
 ```
 
 ### Promtail Configuration

@@ -68,6 +68,7 @@
         remote_src: yes
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
+      register: grafana_agent_binary
 
     - name: Clean up temporary files
       file:
@@ -89,7 +90,7 @@
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
         mode: '0644'
-      register: grafana_agent_config_status
+      register: grafana_agent_config
 
     - name: Ensure runtime directory exists
       file:
@@ -98,25 +99,14 @@
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
         mode: '0755'
-      register: grafana_agent_runtime_status
 
     - name: Template Grafana Agent systemd service
       template:
         src: templates/grafana-agent/grafana_agent.service.j2
         dest: /etc/systemd/system/grafana-agent.service
         mode: '0644'
-      register: grafana_agent_service_status
+      register: grafana_agent_service
       notify: reload systemd
-
-    - name: Restart Grafana Agent service
-      systemd:
-        name: grafana-agent
-        state: restarted
-      when: 
-        - grafana_agent.enabled | default(false) | bool 
-        - not ansible_connection == 'docker'
-        - grafana_agent_config_status.changed or grafana_agent_runtime_status.changed or grafana_agent_service_status.changed
-      ignore_errors: yes
 
   become: true
   tags: ['grafana_agent', 'service']
@@ -151,6 +141,17 @@
     - ansible_os_family == "Debian"
     - ansible_distribution_major_version | int >= 10
   tags: ['grafana_agent', 'security', 'apparmor']
+
+- name: Restart Grafana Agent service
+  systemd:
+    name: grafana-agent
+    state: restarted
+  when: 
+    - grafana_agent.enabled | default(false) | bool 
+    - not ansible_connection == 'docker'
+    - grafana_agent_config.changed
+    - grafana_agent_service.changed 
+    - grafana_agent_binary.changed
 
 - name: Wait for Grafana Agent metrics endpoint to be available
   uri:

@@ -20,20 +20,6 @@
     daemon_reload: yes
   when: promtail.enabled | bool and not ansible_connection == 'docker'
 
-- name: reload monit
-  systemd:
-    name: monit
-    state: reloaded
-    daemon_reload: yes
-  when: monit.enabled | bool and not ansible_connection == 'docker'
-
-- name: restart monit
-  systemd:
-    name: monit
-    state: restarted
-    daemon_reload: yes
-  when: monit.enabled | bool and not ansible_connection == 'docker'
-
 - name: restart teleport
   systemd:
     name: teleport
@@ -54,3 +40,9 @@
     state: restarted
   become: true
   when: not ansible_connection == 'docker'
+
+- name: restart prometheus
+  ansible.builtin.systemd:
+    name: prometheus
+    state: restarted
+    enabled: true

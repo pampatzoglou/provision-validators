@@ -7,10 +7,3 @@
     state: restarted
     daemon_reload: yes
   when: polkadot.enabled | default(false) | bool and not ansible_connection == 'docker'
-
-- name: reload monit
-  systemd:
-    name: monit
-    state: reloaded
-    daemon_reload: yes
-  when: monit.enabled | bool and not ansible_connection == 'docker'

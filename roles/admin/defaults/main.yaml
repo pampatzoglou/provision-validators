@@ -1,4 +1,17 @@
 ---
+prometheus_version: "2.47.0"    # Update to the desired Prometheus version
+prometheus_user: "prometheus"
+prometheus_group: "prometheus"
+install_dir: "/opt/prometheus"
+prometheus_data_dir: "/var/lib/prometheus"
+prometheus_config_dir: "/etc/prometheus"
+
+alertmanager_version: "0.26.0" # Update to the desired Alertmanager version
+alertmanager_user: "alertmanager"
+alertmanager_group: "alertmanager"
+alertmanager_data_dir: "/var/lib/alertmanager"
+alertmanager_config_dir: "/etc/alertmanager"
+
 # Node Exporter Configuration
 node_exporter:
   enabled: true  # Optional installation
@@ -22,10 +35,10 @@ grafana_agent:
   user: "grafana-agent"
   group: "grafana-agent"
   port: 12345
-  metrics_write:
+  prometheus:
     url: "http://prometheus:9090/api/v1/write"
-  logs_write:
-    url: "http://localhost:3100/loki/api/v1/push"
+  loki:
+    url: "http://loki:3100/loki/api/v1/push"
   extra_scrape_configs:
     - job_name: "polkadot"
       static_configs:
@@ -70,13 +83,6 @@ promtail:
   apparmor:
     enabled: "{{ apparmor.enabled and apparmor.profiles.promtail.enabled }}"
     enforce: "{{ apparmor.profiles.promtail.enforce }}"
-
-# Monit Configuration
-monit:
-  enabled: true
-  apparmor:
-    enabled: "{{ apparmor.enabled and apparmor.profiles.monit.enabled }}"
-    enforce: "{{ apparmor.profiles.monit.enforce }}"
 
 # Teleport Configuration
 teleport:

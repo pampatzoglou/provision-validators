@@ -44,7 +44,6 @@
         - 3022  # Teleport SSH
         - 9100  # Node Exporter
         - 9080  # Promtail
-        - 2812  # Monit
 
     - name: Check if binaries exist and are executable
       stat:
@@ -65,7 +64,6 @@
       loop:
         - /etc/teleport/teleport.yaml
         - /etc/promtail/config.yaml
-        - /etc/monit/monitrc
         - /etc/grafana-agent/agent.yaml
 
     - name: Check if system users exist

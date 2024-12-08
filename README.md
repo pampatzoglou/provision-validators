@@ -329,9 +329,6 @@ apparmor:
     promtail:
       enabled: true
       enforce: true
-    monit:
-      enabled: true
-      enforce: true
     teleport:
       enabled: true
       enforce: true
@@ -365,7 +362,6 @@ opsgenie:
 
 ### 🖥️ Monitoring
 - Grafana Agent integration
-- Monit service monitoring
 - Node Exporter system metrics
 - Promtail log aggregation
 

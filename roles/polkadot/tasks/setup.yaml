@@ -151,15 +151,6 @@
   tags: ['setup', 'firewall']
 
 - block:
-    - name: Template monit configuration
-      template:
-        src: polkadot.monit.j2
-        dest: /etc/monit/conf.d/polkadot
-        mode: '0644'
-      notify: reload monit
-  tags: ['setup', 'monitoring']
-
-- block:
     - name: Template AppArmor profile
       template:
         src: polkadot.apparmor.j2

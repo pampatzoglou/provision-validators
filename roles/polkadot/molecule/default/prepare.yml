@@ -6,22 +6,12 @@
     apt:
       name: 
         - ufw
-        - monit
         - systemd
         - dbus
         - python3-apt
       state: present
       update_cache: yes
     when: ansible_os_family == "Debian"
-
-  - name: Ensure monit configuration directories exist
-    file:
-      path: "{{ item }}"
-      state: directory
-      mode: '0755'
-    loop:
-      - /etc/monit
-      - /etc/monit/conf.d
 
   - name: Create systemd directories
     file:

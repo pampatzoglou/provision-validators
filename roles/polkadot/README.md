@@ -147,7 +147,6 @@ sequenceDiagram
 - Secure systemd service configuration
 - Binary management with signature verification
 - Firewall configuration
-- Monit service monitoring
 - Dedicated system user and group
 - Directory structure management
 - Prometheus metrics exposure
@@ -334,11 +333,6 @@ The role configures a systemd service with:
 - Node-specific metrics
 - Validator performance metrics
 - System resource usage
-
-### Monit Checks
-- Process monitoring
-- Resource usage alerts
-- Custom validator checks
 
 ## Testing
 

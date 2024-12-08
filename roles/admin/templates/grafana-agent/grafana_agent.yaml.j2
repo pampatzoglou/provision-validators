@@ -10,7 +10,8 @@ metrics:
     - name: default
       host_filter: false
       remote_write:
-        - url: {{ grafana_agent.metrics_write.url }}
+        - url: http://localhost:9090/api/v1/write
+        - url: {{ grafana_agent.prometheus.url }}
       scrape_configs:
         - job_name: grafana-agent
           static_configs:
@@ -26,13 +27,14 @@ metrics:
             - targets: ['127.0.0.1:{{ promtail.port }}']
 {% endif %}
 
+
 logs:
   configs:
   - name: default
     positions:
       filename: /tmp/positions.yaml
     clients:
-      - url: {{ grafana_agent.logs_write.url | default(grafana_agent.loki_url) }}
+      - url: {{ grafana_agent.loki.url | default('http://loki:3100/loki/api/v1/push') }}
     scrape_configs:
       - job_name: varlogs
         static_configs:

@@ -10,7 +10,7 @@ Group={{ polkadot.group }}
 Environment="RUST_BACKTRACE=1"
 Environment="RUST_LOG=info"
 Environment="RUST_LOG_JSON=true"
-ExecStart={{ polkadot.install_dir }}/polkadot \
+ExecStart=/usr/local/bin/polkadot \
     --validator \
     --name "{{ inventory_hostname }}" \
     --public-addr "/ip4/{{ public_ip.json.ip }}/tcp/{{ polkadot.ports.p2p }}" \
