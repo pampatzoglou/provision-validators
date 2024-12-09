@@ -6,4 +6,5 @@ alerting:
     - static_configs:
         - targets: ['localhost:9093']
 rule_files:
-  - "{{ prometheus_config_dir }}/rules.d/*.yaml"
+  - "{{ prometheus.config_dir }}/rules.d/*.yaml"
+  - "{{ prometheus.config_dir }}/rules.d/*.yml"

@@ -8,6 +8,8 @@ This role manages system administration tasks, monitoring, and secure access for
 - Comprehensive resource monitoring with configurable thresholds
 - Alerts via Slack and email
 - Integration with Grafana Agent for detailed metrics
+- Prometheus and Alertmanager for monitoring and alerting
+- Protected access to monitoring endpoints via Teleport
 
 ## Features
 
@@ -15,9 +17,17 @@ This role manages system administration tasks, monitoring, and secure access for
 - Grafana Agent for metrics collection
 - Promtail for log aggregation
 - Node Exporter for system metrics
-- Teleport for secure SSH access
+- Teleport for secure SSH and application access
 - Binary signature verification
 - OpsGenie heartbeats for service health monitoring
+
+### 🔐 Protected Services via Teleport
+- **Monitoring Endpoints**
+  - Prometheus UI (`prometheus.<nodename>`)
+  - Alertmanager UI (`alertmanager.<nodename>`)
+- **Validator Endpoints**
+  - Polkadot Metrics (`metrics.<nodename>`)
+  - Polkadot RPC (`rpc.<nodename>`)
 
 ### 🔒 Security Hardening
 #### AppArmor Service Protection
@@ -39,6 +49,27 @@ This role manages system administration tasks, monitoring, and secure access for
 - Multi-service SSH protection
 
 ### 🛡️ Configuration Options
+
+#### Teleport Application Service
+```yaml
+teleport:
+  enabled: true
+  auth:
+    enabled: true
+  proxy:
+    enabled: true
+  app_service:
+    enabled: true
+    apps:
+      - name: prometheus
+        uri: "http://localhost:9090"
+      - name: alertmanager
+        uri: "http://localhost:9093"
+      - name: polkadot-metrics
+        uri: "http://localhost:9615"
+      - name: polkadot-rpc
+        uri: "http://localhost:9944"
+```
 
 #### Shared Memory Hardening
 ```yaml

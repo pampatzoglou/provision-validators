@@ -1,9 +1,0 @@
-[Unit]
-Description=Timer for OpsGenie Heartbeat {{ item.name }}
-Requires=opsgenie-{{ item.name }}-heartbeat.service
-
-[Timer]
-OnCalendar=*:0/{{ item.interval }}
-
-[Install]
-WantedBy=timers.target

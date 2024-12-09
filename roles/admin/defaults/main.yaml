@@ -1,16 +1,18 @@
 ---
-prometheus_version: "2.47.0"    # Update to the desired Prometheus version
-prometheus_user: "prometheus"
-prometheus_group: "prometheus"
-install_dir: "/opt/prometheus"
-prometheus_data_dir: "/var/lib/prometheus"
-prometheus_config_dir: "/etc/prometheus"
+prometheus:
+  version: "2.47.0"    # Update to the desired Prometheus version
+  user: "prometheus"
+  group: "prometheus"
+  install_dir: "/opt/prometheus"
+  data_dir: "/var/lib/prometheus"
+  config_dir: "/etc/prometheus"
 
-alertmanager_version: "0.26.0" # Update to the desired Alertmanager version
-alertmanager_user: "alertmanager"
-alertmanager_group: "alertmanager"
-alertmanager_data_dir: "/var/lib/alertmanager"
-alertmanager_config_dir: "/etc/alertmanager"
+alertmanager:
+  version: "0.26.0" # Update to the desired Alertmanager version
+  user: "alertmanager"
+  group: "alertmanager"
+  data_dir: "/var/lib/alertmanager"
+  config_dir: "/etc/alertmanager"
 
 # Node Exporter Configuration
 node_exporter:
@@ -50,6 +52,7 @@ grafana_agent:
     enforce: "{{ apparmor.profiles.grafana_agent.enforce }}"
 
 # Promtail Configuration
+# Depricated
 promtail:
   enabled: false  # Optional installation
   version: "3.2.1"
@@ -113,6 +116,27 @@ teleport:
   # Proxy Service Configuration
   proxy:
     enabled: true
+
+  # Application Service Configuration
+  app_service:
+    enabled: true
+    apps:
+      monitoring:
+        - name: prometheus
+          uri: "http://localhost:9090"
+          labels:
+            type: monitoring
+        - name: alertmanager
+          uri: "http://localhost:9093"
+          labels:
+            type: monitoring
+      validators:
+        - name: polkadot
+          ports:
+            metrics: 9615
+            rpc: 9944
+          labels:
+            type: validator
 
 # Firewall Configuration
 firewall:

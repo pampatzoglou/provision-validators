@@ -29,3 +29,38 @@ proxy_service:
   listen_addr: 0.0.0.0:3023
   web_listen_addr: 0.0.0.0:3080
   tunnel_listen_addr: 0.0.0.0:3024
+
+app_service:
+  enabled: {{ teleport.app_service.enabled | string | lower }}
+  apps:
+{% for app in teleport.app_service.apps.monitoring %}
+    - name: {{ app.name }}
+      uri: "{{ app.uri }}"
+      public_addr: "{{ app.name }}.{{ teleport.node_name }}"
+      labels:
+        type: "{{ app.labels.type }}"
+      rewrite:
+        headers:
+        - "Authorization"
+{% endfor %}
+
+{% for validator in teleport.app_service.apps.validators %}
+    - name: "{{ validator.name }}-metrics"
+      uri: "http://localhost:{{ validator.ports.metrics }}"
+      public_addr: "metrics-{{ validator.name }}.{{ teleport.node_name }}"
+      labels:
+        type: "{{ validator.labels.type }}"
+      rewrite:
+        headers:
+        - "Authorization"
+
+    - name: "{{ validator.name }}-rpc"
+      uri: "http://localhost:{{ validator.ports.rpc }}"
+      public_addr: "rpc-{{ validator.name }}.{{ teleport.node_name }}"
+      labels:
+        type: "{{ validator.labels.type }}"
+      rewrite:
+        headers:
+        - "Authorization"
+      insecure_skip_verify: true
+{% endfor %}

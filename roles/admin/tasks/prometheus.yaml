@@ -3,13 +3,13 @@
   block:
     - name: Ensure Prometheus user and group exist
       ansible.builtin.group:
-        name: "{{ prometheus_group }}"
+        name: "{{ prometheus.group }}"
         state: present
 
     - name: Create Prometheus user
       ansible.builtin.user:
-        name: "{{ prometheus_user }}"
-        group: "{{ prometheus_group }}"
+        name: "{{ prometheus.user }}"
+        group: "{{ prometheus.group }}"
         system: true
         shell: /sbin/nologin
         create_home: false
@@ -27,7 +27,7 @@
   block:
     - name: Download Prometheus
       ansible.builtin.get_url:
-        url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus.version }}/prometheus-{{ prometheus.version }}.linux-amd64.tar.gz"
         dest: "/tmp/prometheus.tar.gz"
 
     - name: Extract Prometheus
@@ -38,7 +38,7 @@
 
     - name: Install Prometheus binaries
       ansible.builtin.copy:
-        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+        src: "/tmp/prometheus-{{ prometheus.version }}.linux-amd64/prometheus"
         dest: "/usr/local/bin/prometheus"
         mode: '0755'
       register: prometheus_binary
@@ -47,13 +47,13 @@
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ prometheus_user }}"
-        group: "{{ prometheus_group }}"
+        owner: "{{ prometheus.user }}"
+        group: "{{ prometheus.group }}"
         mode: '0755'
       loop:
-        - "{{ prometheus_data_dir }}"
-        - "{{ prometheus_config_dir }}"
-        - "{{ prometheus_config_dir }}/rules.d"
+        - "{{ prometheus.data_dir }}"
+        - "{{ prometheus.config_dir }}"
+        - "{{ prometheus.config_dir }}/rules.d"
 
 - name: Configure Prometheus Service
   block:
@@ -61,10 +61,10 @@
     - name: Template Prometheus config file
       template:
         src: templates/prometheus/prometheus.yaml.j2
-        dest: "{{ prometheus_config_dir }}/prometheus.yaml"
+        dest: "{{ prometheus.config_dir }}/prometheus.yaml"
         mode: '0644'
-        owner: "{{ prometheus_user }}"
-        group: "{{ prometheus_group }}"
+        owner: "{{ prometheus.user }}"
+        group: "{{ prometheus.group }}"
       register: prometheus_config
 
     - name: Template Prometheus systemd service

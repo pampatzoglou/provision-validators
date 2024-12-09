@@ -4,24 +4,24 @@
   become: true
   gather_facts: true
 
-  pre_tasks:
-  - name: Update apt cache (Debian)
-    apt:
-      update_cache: yes
-      cache_valid_time: 3600
-    tags: always
-    when: ansible_os_family == "Debian"
+  # pre_tasks:
+  # - name: Update apt cache (Debian)
+  #   apt:
+  #     update_cache: yes
+  #     cache_valid_time: 3600
+  #   tags: always
+  #   when: ansible_os_family == "Debian"
 
-  - name: Update dnf cache (RedHat)
-    dnf:
-      update_cache: yes
-      cache_valid_time: 3600
-    tags: always
-    when: ansible_os_family == "RedHat"
+  # - name: Update dnf cache (RedHat)
+  #   dnf:
+  #     update_cache: yes
+  #     cache_valid_time: 3600
+  #   tags: always
+  #   when: ansible_os_family == "RedHat"
 
   roles:
     - role: admin
       tags: ['admin', 'security', 'monitoring']
-    - role: polkadot
-      tags: ['polkadot']
+    # - role: polkadot
+    #   tags: ['polkadot']
 
