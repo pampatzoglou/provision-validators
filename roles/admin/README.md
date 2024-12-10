@@ -15,19 +15,18 @@ This role manages system administration tasks, monitoring, and secure access for
 
 - UFW firewall configuration
 - Grafana Agent for metrics collection
-- Promtail for log aggregation
+- Prometheus monitoring and alerting
 - Node Exporter for system metrics
 - Teleport for secure SSH and application access
 - Binary signature verification
-- OpsGenie heartbeats for service health monitoring
 
 ### 🔐 Protected Services via Teleport
 - **Monitoring Endpoints**
   - Prometheus UI (`prometheus.<nodename>`)
   - Alertmanager UI (`alertmanager.<nodename>`)
 - **Validator Endpoints**
-  - Polkadot Metrics (`metrics.<nodename>`)
-  - Polkadot RPC (`rpc.<nodename>`)
+  - Polkadot Metrics (`metrics-polkadot.<nodename>`)
+  - Polkadot RPC (`rpc-polkadot.<nodename>`)
 
 ### 🔒 Security Hardening
 #### AppArmor Service Protection
@@ -50,25 +49,52 @@ This role manages system administration tasks, monitoring, and secure access for
 
 ### 🛡️ Configuration Options
 
+#### Prometheus Rules
+```yaml
+# Basic Heartbeat and Monitoring Rules
+groups:
+  - name: heartbeat_rules
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ '$labels.instance' }} down"
+
+      - alert: ValidatorDown
+        expr: up{job="polkadot"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Validator metrics down"
+
+      - alert: ValidatorSyncIssue
+        expr: polkadot_sync_target_height - polkadot_sync_current_height > 100
+        for: 10m
+        labels:
+          severity: warning
+```
+
 #### Teleport Application Service
 ```yaml
 teleport:
   enabled: true
-  auth:
-    enabled: true
-  proxy:
-    enabled: true
   app_service:
     enabled: true
     apps:
-      - name: prometheus
-        uri: "http://localhost:9090"
-      - name: alertmanager
-        uri: "http://localhost:9093"
-      - name: polkadot-metrics
-        uri: "http://localhost:9615"
-      - name: polkadot-rpc
-        uri: "http://localhost:9944"
+      monitoring:
+        - name: prometheus
+          uri: "http://localhost:9090"
+        - name: alertmanager
+          uri: "http://localhost:9093"
+      validators:
+        - name: polkadot
+          ports:
+            metrics: 9615
+            rpc: 9944
 ```
 
 #### Shared Memory Hardening
@@ -98,21 +124,6 @@ hardening:
         enabled: false
 ```
 
-#### OpsGenie Heartbeat Configuration
-```yaml
-opsgenie:
-  heartbeats:
-    enabled: true  # Enable/disable OpsGenie integration
-    api_key: "your_opsgenie_api_key"
-    heartbeats:
-      - name: node_health
-        interval: 5     # Heartbeat interval (minutes)
-        enabled: true
-      - name: validator_status
-        interval: 5
-        enabled: true
-```
-
 #### AppArmor Configuration
 ```yaml
 apparmor:
@@ -122,9 +133,6 @@ apparmor:
       enabled: true   # Enable profile for Grafana Agent
       enforce: true   # Enforce mode (false for complain mode)
     node_exporter:
-      enabled: true
-      enforce: true
-    promtail:
       enabled: true
       enforce: true
     teleport:
@@ -149,17 +157,6 @@ ufw:
   rules:
     - { port: 22, proto: "tcp", rule: "allow" }
     - { port: 3022, proto: "tcp", rule: "allow" }
-```
-
-### Promtail Configuration
-```yaml
-promtail:
-  version: "2.9.2"
-  enabled: true
-  install_dir: "/usr/local/bin"
-  config_dir: "/etc/promtail"
-  positions_dir: "/var/lib/promtail"
-  loki_url: "http://loki:3100/loki/api/v1/push"
 ```
 
 ### Grafana Agent Configuration
@@ -210,21 +207,6 @@ hardening:
         enabled: false
 ```
 
-### OpsGenie Heartbeat Configuration
-```yaml
-opsgenie:
-  heartbeats:
-    enabled: true  # Enable/disable OpsGenie integration
-    api_key: "your_opsgenie_api_key"
-    heartbeats:
-      - name: node_health
-        interval: 5     # Heartbeat interval (minutes)
-        enabled: true
-      - name: validator_status
-        interval: 5
-        enabled: true
-```
-
 ## Architecture
 
 ```mermaid
@@ -233,7 +215,7 @@ graph TD
         A[Node Exporter]
         B[Grafana Agent]
         C[Promtail]
-        M[Monit] --> |Monitor| B
+        M[Teleport] --> |Monitor| B
         M --> |Monitor| A
         M --> |Monitor| C
     end
@@ -272,9 +254,6 @@ graph LR
         A[Grafana Agent]
         B[Node Exporter]
         C[Promtail]
-        D[Monit] --> |Monitor| A
-        D --> |Monitor| B
-        D --> |Monitor| C
         T[Teleport]
         
         subgraph Security Layer
@@ -302,7 +281,6 @@ graph LR
     F --> |MAC| A
     F --> |MAC| B
     F --> |MAC| C
-    F --> |MAC| D
     F --> |MAC| T
     G --> |Access| A
 ```
@@ -323,10 +301,6 @@ Required Ansible collections:
         teleport:
           auth_token: "your-auth-token"
           auth_server: "auth.example.com:3025"
-        monit:
-          checks:
-            system:
-              enabled: true
         promtail:
           enabled: true
           loki_url: "http://loki.example.com:3100"
@@ -337,17 +311,6 @@ Required Ansible collections:
             enabled: true
             ssh:
               max_retry: 5
-        opsgenie:
-          heartbeats:
-            enabled: true
-            api_key: "your_opsgenie_api_key"
-            heartbeats:
-              - name: node_health
-                interval: 5
-                enabled: true
-              - name: validator_status
-                interval: 5
-                enabled: true
         apparmor:
           enabled: true
           profiles:
@@ -355,12 +318,6 @@ Required Ansible collections:
               enabled: true
               enforce: true
             node_exporter:
-              enabled: true
-              enforce: true
-            promtail:
-              enabled: true
-              enforce: true
-            monit:
               enabled: true
               enforce: true
             teleport:
@@ -381,31 +338,15 @@ Required Ansible collections:
 
 ## Monitoring Stack
 
-### Monit
-- System resource monitoring
-- Process monitoring
-- Custom service checks
-
 ### Grafana Agent
 - Metrics collection
 - Remote write to Prometheus
 - Service discovery
 
-### Promtail
-- Log aggregation
-- Label management
-- Loki integration
-
 ### Node Exporter
 - System metrics collection
 - Hardware monitoring
 - Resource utilization tracking
-
-### OpsGenie Heartbeats
-- Configurable service health monitoring
-- Multiple heartbeat endpoints
-- Flexible interval settings
-- Systemd-managed heartbeat services
 
 ## Testing
 

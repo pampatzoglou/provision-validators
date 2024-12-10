@@ -39,9 +39,7 @@ app_service:
       public_addr: "{{ app.name }}.{{ teleport.node_name }}"
       labels:
         type: "{{ app.labels.type }}"
-      rewrite:
-        headers:
-        - "Authorization"
+      insecure_skip_verify: true
 {% endfor %}
 
 {% for validator in teleport.app_service.apps.validators %}
@@ -50,17 +48,12 @@ app_service:
       public_addr: "metrics-{{ validator.name }}.{{ teleport.node_name }}"
       labels:
         type: "{{ validator.labels.type }}"
-      rewrite:
-        headers:
-        - "Authorization"
+      insecure_skip_verify: true
 
     - name: "{{ validator.name }}-rpc"
       uri: "http://localhost:{{ validator.ports.rpc }}"
       public_addr: "rpc-{{ validator.name }}.{{ teleport.node_name }}"
       labels:
         type: "{{ validator.labels.type }}"
-      rewrite:
-        headers:
-        - "Authorization"
       insecure_skip_verify: true
 {% endfor %}

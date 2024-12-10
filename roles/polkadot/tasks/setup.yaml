@@ -189,3 +189,12 @@
       register: rpc
       failed_when: false
       changed_when: false
+
+- name: Install Prometheus rules
+  ansible.builtin.copy:
+    src: "templates/prometheus.rules.yaml"
+    dest: "{{ prometheus.config_dir }}/rules.d/polkadot-validator.rules.yaml"
+    mode: '0644'
+    owner: "{{ prometheus.user }}"
+    group: "{{ prometheus.group }}"
+  notify: reload prometheus

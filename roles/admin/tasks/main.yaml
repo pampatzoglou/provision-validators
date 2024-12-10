@@ -43,6 +43,11 @@
       when: grafana_agent is defined and grafana_agent.enabled | default(false) | bool
       tags: ['monitoring', 'metrics']
 
+    - name: Include Smartctl Exporter
+      include_tasks: smartctl-exporter.yaml
+      when: smartctl_exporter is defined and smartctl_exporter.enabled | default(false) | bool
+      tags: ['monitoring', 'metrics']
+
     - name: Include prometheus
       include_tasks: prometheus.yaml
       tags: ['monitoring', 'metrics']

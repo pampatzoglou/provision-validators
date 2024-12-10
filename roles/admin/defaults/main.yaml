@@ -6,13 +6,33 @@ prometheus:
   install_dir: "/opt/prometheus"
   data_dir: "/var/lib/prometheus"
   config_dir: "/etc/prometheus"
+  rules:
+    enabled: true
+    default_rules:
+      - heartbeat
+      - host-and-hardware
+      - prometheus-self-monitoring
+      - smartctl-exporter
+    custom_rules: []  # Add your custom rule files here
+    evaluation_interval: 15s
 
 alertmanager:
+  enabled: true
   version: "0.26.0" # Update to the desired Alertmanager version
   user: "alertmanager"
   group: "alertmanager"
   data_dir: "/var/lib/alertmanager"
   config_dir: "/etc/alertmanager"
+
+# Smartctl Exporter Configuration
+smartctl:
+  enabled: true  # Optional installation
+  version: "1.8.2"
+  user: "root"
+  group: "root"
+  install_dir: "/usr/local/bin"
+  config_dir: "/etc/smartctl-exporter"
+  data_dir: "/var/lib/smartctl-exporter"
 
 # Node Exporter Configuration
 node_exporter:
@@ -191,6 +211,9 @@ apparmor:
     fail2ban:
       enabled: true
       enforce: true
+    smartctl_exporter:
+      enabled: true
+      enforce: true
 
 # Hardening Configurations
 hardening:
@@ -244,21 +267,6 @@ monitoring:
       enabled: false
       recipients: []  # Set via vault
 
-# OpsGenie Heartbeat Configuration
-opsgenie:
-  heartbeats:
-    enabled: false
-    api_key: ""  # Set this in your inventory or extra vars
-    heartbeats:
-      - name: node_health
-        interval: 5  # minutes
-        enabled: true
-      - name: validator_status
-        interval: 5  # minutes
-        enabled: true
-      - name: system_metrics
-        interval: 10  # minutes
-        enabled: true
 
 # Binary Signatures
 signatures:

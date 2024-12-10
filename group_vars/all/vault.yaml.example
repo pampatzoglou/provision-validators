@@ -12,8 +12,7 @@ proxmox_user: root@pam
 proxmox_password: your_proxmox_password
 
 # Monitoring and Alerts
-opsgenie_api_key: your_opsgenie_api_key
-opsgenie_heartbeat_name: validator-heartbeat
+
 grafana_api_key: your_grafana_api_key
 
 # Other Sensitive Data

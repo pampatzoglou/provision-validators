@@ -22,6 +22,6 @@
   roles:
     - role: admin
       tags: ['admin', 'security', 'monitoring']
-    # - role: polkadot
-    #   tags: ['polkadot']
+    - role: polkadot
+      tags: ['polkadot']
 

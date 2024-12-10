@@ -33,7 +33,7 @@ MemoryMax=8000M
 
 # Security
 PrivateTmp=true
-NoNewPrivileges=true
+NoNewPrivileges=false
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths={{ polkadot.base_path }} /var/run/polkadot /var/log/polkadot /home/polkadot/.local/share/polkadot
@@ -46,7 +46,8 @@ PrivateDevices=yes
 RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
-MemoryDenyWriteExecute=yes
+AmbientCapabilities=CAP_SYS_EXEC
+CapabilityBoundingSet=CAP_SYS_EXEC
 
 [Install]
 WantedBy=multi-user.target

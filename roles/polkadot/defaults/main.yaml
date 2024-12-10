@@ -336,3 +336,8 @@ upgrade:
             - admin@example.com
         - type: slack
           webhook_url: "{{ slack_webhook_url | default('') }}"
+
+prometheus:
+  user: "prometheus"
+  group: "prometheus"
+  config_dir: "/etc/prometheus"

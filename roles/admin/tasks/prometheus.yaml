@@ -8,8 +8,8 @@
 
     - name: Create Prometheus user
       ansible.builtin.user:
-        name: "{{ prometheus.user }}"
-        group: "{{ prometheus.group }}"
+        name: "{{ alertmanager.user }}"
+        group: "{{ alertmanager.group }}"
         system: true
         shell: /sbin/nologin
         create_home: false
@@ -57,7 +57,6 @@
 
 - name: Configure Prometheus Service
   block:
-
     - name: Template Prometheus config file
       template:
         src: templates/prometheus/prometheus.yaml.j2
@@ -74,18 +73,27 @@
         mode: '0644'
       register: prometheus_service
 
-- name: Restart Prometheus service
-  ansible.builtin.systemd:
-    name: prometheus
-    state: restarted
-    enabled: true
-    daemon_reload: yes
-  when: 
-    - ansible_connection != 'docker'
-    - prometheus_config.changed
-    - prometheus_service.changed 
-    - prometheus_binary.changed
-  ignore_errors: yes
+    - name: Restart Prometheus service
+      ansible.builtin.systemd:
+        name: prometheus
+        state: restarted
+        enabled: true
+        daemon_reload: yes
+      when: 
+        - ansible_connection != 'docker'
+        - prometheus_config.changed or prometheus_service.changed or prometheus_binary.changed
+
+- name: Install Prometheus rules
+  copy:
+    src: "templates/prometheus/rules/{{ item }}"
+    dest: "{{ prometheus.config_dir }}/rules.d/{{ item | basename }}"
+    mode: '0644'
+    owner: "{{ prometheus.user }}"
+    group: "{{ prometheus.group }}"
+  loop:
+    - "heartbeat.yaml"
+    - "prometheus-self-monitoring.rules.yaml"
+  notify: reload prometheus
 
 - name: Wait for Prometheus web UI to become available
   uri:

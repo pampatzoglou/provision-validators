@@ -2,13 +2,13 @@
 - name: Setup Grafana Agent User and Directories
   block:
     - name: Create Grafana Agent group
-      group:
+      ansible.builtin.group:
         name: "{{ grafana_agent.group | default('grafana-agent') }}"
         system: yes
         state: present
 
     - name: Create Grafana Agent user
-      user:
+      ansible.builtin.user:
         name: "{{ grafana_agent.user | default('grafana-agent') }}"
         group: "{{ grafana_agent.group | default('grafana-agent') }}"
         system: yes
@@ -17,7 +17,7 @@
         state: present
 
     - name: Create Grafana Agent directories
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
@@ -32,36 +32,36 @@
 - name: Install Grafana Agent Binary
   block:
     - name: Set Grafana Agent version
-      set_fact:
+      ansible.builtin.set_fact:
         grafana_agent_version: "{{ grafana_agent.version | default('0.43.4') }}"
 
     - name: Download Grafana Agent binary
-      get_url:
+      ansible.builtin.get_url:
         url: "https://github.com/grafana/agent/releases/download/v{{ grafana_agent_version }}/grafana-agent-linux-amd64.zip"
         dest: "/tmp/grafana-agent-linux-amd64.zip"
         mode: '0644'
       register: agent_download
 
     - name: Download SHA256SUMS
-      get_url:
+      ansible.builtin.get_url:
         url: "https://github.com/grafana/agent/releases/download/v{{ grafana_agent_version }}/SHA256SUMS"
         dest: "/tmp/grafana-agent-SHA256SUMS"
         mode: '0644'
 
     - name: Verify Grafana Agent binary checksum
-      shell: |
+      ansible.builtin.shell: |
         cd /tmp
         grep "grafana-agent-linux-amd64.zip" grafana-agent-SHA256SUMS | sha256sum -c
       changed_when: false
 
     - name: Extract Grafana Agent binary
-      unarchive:
+      ansible.builtin.unarchive:
         src: "/tmp/grafana-agent-linux-amd64.zip"
         dest: "/tmp"
         remote_src: yes
 
     - name: Install Grafana Agent binary
-      copy:
+      ansible.builtin.copy:
         src: "/tmp/grafana-agent-linux-amd64"
         dest: "{{ grafana_agent.install_dir | default('/usr/local/bin') }}/grafana-agent"
         mode: '0755'
@@ -71,7 +71,7 @@
       register: grafana_agent_binary
 
     - name: Clean up temporary files
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
@@ -84,7 +84,7 @@
 - name: Configure Grafana Agent Service
   block:
     - name: Template Grafana Agent configuration
-      template:
+      ansible.builtin.template:
         src: templates/grafana-agent/grafana_agent.yaml.j2
         dest: "{{ grafana_agent.config_dir | default('/etc/grafana-agent') }}/agent.yaml"
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
@@ -93,7 +93,7 @@
       register: grafana_agent_config
 
     - name: Ensure runtime directory exists
-      file:
+      ansible.builtin.file:
         path: /run/grafana-agent
         state: directory
         owner: "{{ grafana_agent.user | default('grafana-agent') }}"
@@ -101,7 +101,7 @@
         mode: '0755'
 
     - name: Template Grafana Agent systemd service
-      template:
+      ansible.builtin.template:
         src: templates/grafana-agent/grafana_agent.service.j2
         dest: /etc/systemd/system/grafana-agent.service
         mode: '0644'
@@ -114,12 +114,12 @@
 - name: Configure AppArmor for Grafana Agent
   block:
     - name: Check if AppArmor is installed
-      stat:
+      ansible.builtin.stat:
         path: /sbin/apparmor_parser
       register: apparmor_installed
 
     - name: Install AppArmor profile for Grafana Agent
-      template:
+      ansible.builtin.template:
         src: templates/grafana-agent/grafana_agent.apparmor.j2
         dest: /etc/apparmor.d/usr.local.bin.grafana-agent
         mode: '0644'
@@ -129,7 +129,7 @@
         - grafana_agent.apparmor.enabled | bool
 
     - name: Enable AppArmor profile for Grafana Agent
-      command: "{{ (grafana_agent.apparmor.enforce | bool) | ternary('aa-enforce', 'aa-complain') }} usr.local.bin.grafana-agent"
+      ansible.builtin.command: "{{ (grafana_agent.apparmor.enforce | bool) | ternary('aa-enforce', 'aa-complain') }} usr.local.bin.grafana-agent"
       args:
         creates: "/etc/apparmor.d/{{ (grafana_agent.apparmor.enforce | bool) | ternary('force-complain','force-enforce') }}/usr.local.bin.grafana-agent"
       when: 
@@ -143,18 +143,16 @@
   tags: ['grafana_agent', 'security', 'apparmor']
 
 - name: Restart Grafana Agent service
-  systemd:
+  ansible.builtin.systemd:
     name: grafana-agent
     state: restarted
   when: 
     - grafana_agent.enabled | default(false) | bool 
     - not ansible_connection == 'docker'
-    - grafana_agent_config.changed
-    - grafana_agent_service.changed 
-    - grafana_agent_binary.changed
+    - grafana_agent_config.changed or grafana_agent_service.changed or grafana_agent_binary.changed
 
 - name: Wait for Grafana Agent metrics endpoint to be available
-  uri:
+  ansible.builtin.uri:
     url: "http://localhost:{{ grafana_agent.port }}/metrics"
     method: GET
     status_code: 200
@@ -163,3 +161,12 @@
   retries: 12
   delay: 5
   when: grafana_agent.enabled | bool
+
+- name: Install Prometheus rules
+  ansible.builtin.copy:
+    src: "templates/grafana-agent/prometheus.rules.yaml"
+    dest: "{{ prometheus.config_dir }}/rules.d/grafana-agent.rules.yaml"
+    mode: '0644'
+    owner: "{{ prometheus.user }}"
+    group: "{{ prometheus.group }}"
+  notify: reload prometheus
